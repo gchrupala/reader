@@ -1,0 +1,13 @@
+{
+  "name": "reader",
+  "owner": {
+    "name": "Grzegorz Chrupała"
+  },
+  "plugins": [
+    {
+      "name": "paper",
+      "source": "./plugin",
+      "description": "Fetch and read research papers with the `paper` CLI: by DOI, arXiv id, PMID, URL or title."
+    }
+  ]
+}
