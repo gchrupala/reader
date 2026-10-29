@@ -1,9 +1,9 @@
 ---
-name: paper
+name: paperreader
 description: Fetch and read research papers with the `paper` CLI. Use when the user wants to read, download, cite, summarize or look up a scientific paper given a DOI, arXiv id, PMID/PMCID, ACL Anthology id, OpenReview id, OSF id, URL or title; when they ask for a paper's section, figures or BibTeX; or when they ask to find papers by keywords.
 ---
 
-# Reading papers with `paper`
+# Reading papers with paperreader (command `paper`)
 
 `paper` downloads a paper the user is entitled to read into their library (`~/papers` by default)
 and writes a Markdown text version next to it, with `<!-- page N -->` markers for PDFs and figure and
