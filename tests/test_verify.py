@@ -1,7 +1,7 @@
 from conftest import make_pdf
 
-from paperreader.models import Paper
-from paperreader.verify import check, head_text, title_words
+from reader.models import Paper
+from reader.verify import check, head_text, title_words
 
 VERSACE = Paper(title="Priors in Animal and Artificial Intelligence: Where Does Learning Begin?",
                 authors=["Elisabetta Versace"], doi="10.1016/j.tics.2018.07.005")

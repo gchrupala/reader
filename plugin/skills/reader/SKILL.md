@@ -1,0 +1,55 @@
+---
+name: reader
+description: Fetch and read research papers with the `reader` CLI. Use when the user wants to read, download, cite, summarize or look up a scientific paper given a DOI, arXiv id, PMID/PMCID, ACL Anthology id, OpenReview id, OSF id, URL or title; when they ask for a paper's section, figures or BibTeX; or when they ask to find papers by keywords.
+---
+
+# Reading papers with `reader`
+
+`reader` downloads a paper the user is entitled to read into their library (`~/papers` by default)
+and writes a Markdown text version next to it, with `<!-- page N -->` markers for PDFs and figure and
+table images linked where they appear. It tries open-access sources first, then the user's
+institutional access. It rate-limits itself per host; do not work around that.
+
+## If `reader` is missing
+
+Check with `command -v reader`. If it is not installed, tell the user and offer to run:
+
+```console
+uv tool install 'reader[browser,figures] @ git+https://github.com/gchrupala/reader'
+reader install-browser   # Chromium for the browser fallback (once per machine)
+reader config --init     # then set `email` and `keys.openalex` in ~/.config/reader/config.toml
+```
+
+## Commands
+
+| task | command |
+| --- | --- |
+| fetch a paper, print its text path | `reader get <id>` |
+| fetch several | `reader get <id> <id> ...` or `reader get --from keys.tsv` (`key<TAB>id` per line) |
+| print the text | `reader read <id>` |
+| list headings, one section, no references | `reader read <id> --sections`, `--section Methods`, `--no-refs` |
+| some pages only (PDFs) | `reader read <id> --pages 1-3` |
+| figure and table images | `reader read <id> --figures` |
+| find a DOI by keywords or title | `reader search <words> -n 5` |
+| metadata and candidate locations, no download | `reader resolve <id>` |
+| BibTeX | `reader bib <id> ...` |
+| what is in the library | `reader list` |
+| papers that failed and need a person | `reader pending` |
+
+`<id>` is a DOI (`10.1038/nature14539`), `arXiv:1706.03762`, `pmid:17375194`, `PMC1234567`, an ACL
+Anthology id, an OpenReview or OSF id, a URL, an exact title, or a library key. `--json` on `get`,
+`resolve`, `search` and `list` gives machine-readable output.
+
+## How to work
+
+- For a long paper, read `--sections` first, then the sections you need, rather than the whole text.
+- Figures and tables are image files: open them with the Read tool to look at them.
+- Use `-q` with `get` to skip the per-attempt log when it is not needed.
+- If `get` fails, report its reason and hints to the user. Do not look for other copies on the web
+  or retry in a loop: the tool already tried every route it knows, and repeated requests can get
+  the user's institution blocked by a publisher.
+- A failure that needs a person (a human check, a sign-in) is kept in `reader pending`. The user can
+  run `reader login` once to sign in to their library's proxy, `reader pending --retry` at their own
+  machine, or `reader add FILE [ID]` for a PDF they downloaded themselves.
+- `get` may open a visible browser window for a human check and wait up to a few minutes for the
+  user; tell them when that may happen. In a session without a display, pass `--no-browser`.

@@ -1,5 +1,5 @@
 [project]
-name = "paperreader"
+name = "reader"
 version = "0.1.0"
 description = "Fetch and read research papers politely: open-access sources first, institutional access through your own browser session."
 readme = "README.md"
@@ -16,7 +16,7 @@ browser = ["playwright>=1.49"]
 figures = ["pymupdf>=1.26"]
 
 [project.scripts]
-paper = "paperreader.cli:main"
+reader = "reader.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]

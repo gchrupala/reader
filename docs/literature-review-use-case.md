@@ -1,12 +1,12 @@
 # Notes from use in a literature review
 
-Written 10 October 2026 after using `paper` from a Claude Code cloud session for
+Written 10 October 2026 after using `reader` from a Claude Code cloud session for
 the literature review of a grant proposal (repository `gchrupala/warthog`). The
 review keeps full texts in its own repository under bibliography keys, and an
 agent reads them and checks claims against them.
 
 What was done: 30 papers that the review's own scripts had failed to download
-were run through `paper get --no-browser`. 10 succeeded; after the NCBI
+were run through `reader get --no-browser`. 10 succeeded; after the NCBI
 E-utilities route was added, 16 did. The rest are below.
 
 Items are ordered by how much they would have helped.
@@ -25,19 +25,19 @@ Tilburg University network, without the browser.
 3. PMC without XML: Europe PMC's rendered PDF is a candidate; it refuses plain HTTP and
    goes to the browser, where the PDF arrived after a Cloudflare check cleared by itself.
    With the library proxy configured, the proxy is tried first and got Lytle 2018 from PNAS.
-4. `paper pending` lists every paper `get` could not fetch, with the reason and the page to
+4. `reader pending` lists every paper `get` could not fetch, with the reason and the page to
    open; `--retry`, `--tsv`, `--json`, `--clear`.
-5. `paper add FILE [ID]`; without an id, the first DOI or arXiv id on the first pages.
-6. `PAPERREADER_EMAIL`.
-7. `paper get --key KEY`, keys per line in `--from`, and `--export DIR --name '{key}.txt'`.
+5. `reader add FILE [ID]`; without an id, the first DOI or arXiv id on the first pages.
+6. `READER_EMAIL`.
+7. `reader get --key KEY`, keys per line in `--from`, and `--export DIR --name '{key}.txt'`.
    Library keys work wherever an identifier does. The year now comes from Crossref's issue
    date (roseberry2014).
-8. `paper get --from FILE` (`key<TAB>identifier` or `identifier` per line, `-` for stdin)
+8. `reader get --from FILE` (`key<TAB>identifier` or `identifier` per line, `-` for stdin)
    ends with one line per paper.
-9. `paper bib ID...`, with type, volume, issue and pages from Crossref.
+9. `reader bib ID...`, with type, volume, issue and pages from Crossref.
 10. HAL cover pages are dropped (the page marker stays) and "Downloaded from ..." watermark
     lines removed.
-11. `paper read --sections`, `--section NAME` (repeatable) and `--no-refs`. PDF headings are
+11. `reader read --sections`, `--section NAME` (repeatable) and `--no-refs`. PDF headings are
     guessed: numbered headings in sequence, Roman numerals, the usual section names.
 12. Exponents split onto their own line are joined: "p = 3.2e−6".
 
@@ -46,7 +46,7 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 13. A human check that is shown and not completed marks its site. The paper's other pages
     on that site are skipped, later papers in the same run open no window for it, and for
     12 hours (`browser.check_memory_hours`) later runs that are not `--visible` skip it too;
-    the paper fails at once and goes to `paper pending`. `--visible` and `paper pending
+    the paper fails at once and goes to `reader pending`. `--visible` and `reader pending
     --retry` ask again, and a passed check clears the mark. One paper waits for a person at
     most 180 s (`browser.paper_wait`). Closing the window or the tab during a check skips
     the paper; before, it counted as a failed page and the next page opened another check.
@@ -57,7 +57,7 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 14. Before a download is stored, its first two pages must show the DOI (or arXiv id or
     PMCID) or 85% of the title's distinctive words close together; otherwise it is rejected
     with "the download does not match the requested paper" and the next candidate is tried.
-    A URL that is the source of another library entry is refused. `paper verify` checks the
+    A URL that is the source of another library entry is refused. `reader verify` checks the
     library (read-only unless `--remove`); on the library of 10 October 2026 it finds the
     Versace entry and nothing else. The cause of the wrong download was not found. With
     headless Chromium on a local server: a page receives only downloads started by its own
@@ -95,16 +95,16 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 4. **A mode for headless agents.** In a cloud container there is no display, so
    human checks cannot be completed and institutional sign-in is impossible.
    What helps instead is a list of what needs a person, kept until the person
-   is at their own machine. For example, `paper get` could add failures to a
-   queue, and `paper pending` would list them with the reason and the URL to
+   is at their own machine. For example, `reader get` could add failures to a
+   queue, and `reader pending` would list them with the reason and the URL to
    open.
-5. **`paper add FILE --doi ID`.** Registers a PDF the user downloaded by hand:
+5. **`reader add FILE --doi ID`.** Registers a PDF the user downloaded by hand:
    it extracts the text and fetches the metadata like `get` does. The review
    currently does this with `pdftotext` and loses the metadata header and the
    page markers.
 6. **Email from the environment.** API keys can come from environment
    variables but `email` cannot, so Unpaywall is skipped in a fresh container.
-   A `PAPERREADER_EMAIL` variable would fix this, set as a secret of the cloud
+   A `READER_EMAIL` variable would fix this, set as a secret of the cloud
    environment. The config, cache and rate-limit database live under the home
    directory and are lost when the container is reclaimed. The design allows
    for this, but it means that published rate limits are the only protection
@@ -115,15 +115,15 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 7. **Choosing the key and the location.** The review stores texts as
    `fulltext/<bibkey>.txt`, and the library's keys
    (`roseberry2013-skype-me-socially-contingent`) had to be mapped by hand.
-   Options: `paper get ID --key roseberry2014`, or
-   `paper export ID... --dir fulltext --name {key}.txt`. The year also differs
+   Options: `reader get ID --key roseberry2014`, or
+   `reader export ID... --dir fulltext --name {key}.txt`. The year also differs
    between the two keys: OpenAlex gives the year of online publication (2013),
    while the bibliography uses the issue year (2014).
-8. **Batch input with a summary.** Something like `paper get --from keys.tsv`,
+8. **Batch input with a summary.** Something like `reader get --from keys.tsv`,
    where each line is a key and an id, followed by a one-line result per paper
    (ok, the source and version, or the failure reason). `--json` covers part of
    this, but a short table is what an agent reports back to the user.
-9. **BibTeX.** `paper bib ID` would print an entry from the metadata already
+9. **BibTeX.** `reader bib ID` would print an entry from the metadata already
    collected (Crossref for pages, venue and DOI). This review looked up
    zellers2022 on Crossref by hand to add it to the bibliography.
 
@@ -135,8 +135,8 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 11. **Reading parts of a paper.** Agents mostly need the abstract, methods,
     results and limitations, not the references. JATS output already has
     `##` headings. For PDFs, a heuristic for numbered or capitalised section
-    headings would allow `paper read ID --sections` (a list of headings) and
-    `paper read ID --section Results`. A `--no-refs` flag alone would already
+    headings would allow `reader read ID --sections` (a list of headings) and
+    `reader read ID --section Results`. A `--no-refs` flag alone would already
     save tokens: the review cut references with `awk`.
 12. **Superscripts in PDF text.** Exponents are split onto their own lines
     (`p = 3.2e` / `−6`). This is minor and only matters when numbers are
@@ -145,7 +145,7 @@ Items 13 and 14 (GitHub issues #4 and #5) were addressed later on 10 October 202
 ## Running with a person at the browser
 
 Observed on 10 October 2026 in a local session with a display, `mode = "auto"`
-and the institutional proxy configured. An agent ran one `paper get --json ID`
+and the institutional proxy configured. An agent ran one `reader get --json ID`
 per paper over a list of 50 papers, in sequence.
 
 13. **Repeated human checks for one paper.** For Marler & Peters 1977
@@ -174,7 +174,7 @@ per paper over a list of 50 papers, in sequence.
     What would have helped:
     - After one check that is not passed, mark the host as needing a person
       and skip its remaining candidates. Keep the mark for a while in the
-      state database, so the next `paper get` does not ask again.
+      state database, so the next `reader get` does not ask again.
     - A cap on the total time one paper may wait for a person.
     - Closing the window should mean "skip this paper", not "wait out the
       timeout".
@@ -189,13 +189,13 @@ per paper over a list of 50 papers, in sequence.
     PDF of Lisman & Grace 2005 (`10.1016/j.neuron.2005.05.002`). Its sidecar
     gives the source as `publisher`, via the browser, with the URL
     `https://www.cell.com/neuron/pdf/S0896-6273(05)00397-1.pdf`. That is the
-    Lisman PDF, which a separate `paper get` process had downloaded through
+    Lisman PDF, which a separate `reader get` process had downloaded through
     the browser three minutes earlier (12:03:25Z, source `openalex`). The
     Versace process was killed by the agent about a minute after the save.
     The cause was not determined. Both processes used the same persistent
     browser profile, and the download handler accepts the first download
     event on the page. Because the wrong file is now in the library, later
-    `paper get 10.1016/j.tics.2018.07.005` calls return it without any
+    `reader get 10.1016/j.tics.2018.07.005` calls return it without any
     network request.
 
     What would have helped:
@@ -204,7 +204,7 @@ per paper over a list of 50 papers, in sequence.
       does not match the requested paper" and try the next candidate.
     - Refuse a download whose URL is already the source of another library
       entry.
-    - A `paper verify` command that runs the same check over the library.
+    - A `reader verify` command that runs the same check over the library.
 
     A check over the 15 papers downloaded in this run found only this one
     mismatch. For PubMed Central texts the DOI is often missing from the body,
@@ -256,5 +256,5 @@ Still unsolved without a person (item 4): `10.1121/10.0040820` (AIP, 403),
 
 - An MCP server: the CLI was enough for a coding agent.
 - Citation-graph search: the review has its own OpenAlex and Semantic Scholar
-  scripts for this. It could move into `paper` later (`paper cites`,
-  `paper refs`), but it is a separate tool's job.
+  scripts for this. It could move into `reader` later (`reader cites`,
+  `reader refs`), but it is a separate tool's job.

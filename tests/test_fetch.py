@@ -1,10 +1,10 @@
 import pytest
 from conftest import make_pdf
 
-from paperreader.fetch import Fetcher, FetchFailed
-from paperreader.identifiers import parse
-from paperreader.library import Library
-from paperreader.models import Paper
+from reader.fetch import Fetcher, FetchFailed
+from reader.identifiers import parse
+from reader.library import Library
+from reader.models import Paper
 
 PDF = make_pdf(["Deep learning", "Yann LeCun"])
 OPENALEX = "https://api.openalex.org/works/doi:10.1038/nature14539"
@@ -102,7 +102,7 @@ def test_paywalled_paper_fails_with_hints(config, client, router):
 def test_proxy_comes_before_the_publisher_in_the_browser(config, client, router):
     import httpx
 
-    from paperreader.http import Response
+    from reader.http import Response
 
     class FakeBrowser:
         urls = []
@@ -279,7 +279,7 @@ def test_year_of_a_publisher_copy_is_kept(config, client, router):
 
 
 def test_search_prefers_arxiv_id_for_preprints(config, client, router):
-    from paperreader.sources import hit_identifier, openalex_search
+    from reader.sources import hit_identifier, openalex_search
 
     router.add("https://api.openalex.org/works", json_body={"results": [
         {"id": "https://openalex.org/W1", "doi": "https://doi.org/10.65215/2q58a426", "type": "preprint",

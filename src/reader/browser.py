@@ -1,7 +1,7 @@
 """A real browser for sites that refuse plain HTTP clients, and for institutional sessions.
 
 The browser runs with a private, persistent profile, so a login you complete once
-(`paper login`) is reused later. When a site shows a human-verification page, the
+(`reader login`) is reused later. When a site shows a human-verification page, the
 browser is made visible and you complete the check yourself; closing the window or
 the tab instead skips the paper.
 
@@ -35,10 +35,10 @@ from .html import looks_like_challenge, looks_like_sign_in, refuses_headless
 from .http import Response
 from .ratelimit import RateLimiter
 
-INSTALL_HINT = ("install the browser extra (pip install 'paperreader[browser]'), then run `paper install-browser`, "
+INSTALL_HINT = ("install the browser extra (pip install 'reader[browser]'), then run `reader install-browser`, "
                 "or set browser.channel = \"chrome\" to use an installed Chrome")
 SKIPPED_RESOURCES = {"image", "media", "font"}
-CHALLENGE_HEADER = "x-paperreader-challenge"  # set on responses that are an unsolved human check or sign-in
+CHALLENGE_HEADER = "x-reader-challenge"  # set on responses that are an unsolved human check or sign-in
 SIGN_IN = "sign-in"  # CHALLENGE_HEADER value when the page waits for an institutional sign-in
 
 FETCH_JS = """async (url) => {
@@ -131,7 +131,7 @@ def _session_cookies_path(config: Config) -> Path:
 def save_session_cookies(config: Config, cookies: list[dict]) -> None:
     """Keep cookies that only last a browser session (EZproxy's, identity providers').
 
-    Chromium drops them when it exits, which would undo a `paper login` as soon as its window closes.
+    Chromium drops them when it exits, which would undo a `reader login` as soon as its window closes.
     """
     path = _session_cookies_path(config)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -169,7 +169,7 @@ class _ProfileLock:
         try:
             fcntl.flock(self._f, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
-            self.log("waiting for another paperreader process to finish with the browser...")
+            self.log("waiting for another reader process to finish with the browser...")
             fcntl.flock(self._f, fcntl.LOCK_EX)
         return self
 

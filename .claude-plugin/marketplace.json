@@ -5,9 +5,9 @@
   },
   "plugins": [
     {
-      "name": "paper",
+      "name": "reader",
       "source": "./plugin",
-      "description": "Fetch and read research papers with the `paper` CLI: by DOI, arXiv id, PMID, URL or title."
+      "description": "Fetch and read research papers with the `reader` CLI: by DOI, arXiv id, PMID, URL or title."
     }
   ]
 }

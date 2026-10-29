@@ -6,9 +6,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from paperreader.config import Config, Limit
-from paperreader.http import Cache, PoliteClient
-from paperreader.ratelimit import RateLimiter
+from reader.config import Config, Limit
+from reader.http import Cache, PoliteClient
+from reader.ratelimit import RateLimiter
 
 
 def make_pdf(lines: list[str]) -> bytes:

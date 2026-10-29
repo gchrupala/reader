@@ -1,11 +1,11 @@
 # reader
 
-`paper`: a command-line tool that fetches research papers you are entitled to read
+`reader`: a command-line tool that fetches research papers you are entitled to read
 and turns them into text that you or an AI agent can work with.
 
 ```console
-$ paper get 10.18653/v1/2020.acl-main.1 arXiv:1706.03762 pmid:17375194
-$ paper read 10.1038/nature14539 --pages 1-3
+$ reader get 10.18653/v1/2020.acl-main.1 arXiv:1706.03762 pmid:17375194
+$ reader read 10.1038/nature14539 --pages 1-3
 ```
 
 You give it a DOI, arXiv id, PMID/PMCID, ACL Anthology id, OpenReview id, OSF id, URL or exact title.
@@ -32,10 +32,10 @@ It tries the cheapest and most polite route first and stops at the first that wo
 5. **Your library's proxy** (EZproxy, OpenAthens redirector), in a real browser
    (Chromium through Playwright, with its own private profile).
 6. **That browser for whatever refused plain HTTP.** It reuses sessions you
-   established with `paper login`, for example "Access through your institution"
+   established with `reader login`, for example "Access through your institution"
    on a publisher site.
 
-`paper resolve <id>` shows the candidates without downloading anything.
+`reader resolve <id>` shows the candidates without downloading anything.
 
 ## What the text looks like
 
@@ -46,7 +46,7 @@ The best source for reading is used where there is one:
   as Markdown tables. The PDF is downloaded too, for the figures.
 - **PubMed Central and bioRxiv** papers come as JATS XML: headings, tables, captions.
 - **Everything else** is text from the PDF, page by page, cleaned of cover pages and
-  watermarks. Its headings are guessed for `paper read --sections`.
+  watermarks. Its headings are guessed for `reader read --sections`.
 
 **Figures and tables are images**, so an agent that can see images can look at them:
 
@@ -60,24 +60,24 @@ The best source for reading is used where there is one:
   manuscripts they come from PMC's site, which the browser opens. Without the browser, the
   text says where to see them.
 
-`paper read ID --figures` lists the images with their paths. `paper read` prints the text with
-absolute image paths. `paper figures --all` adds figures to papers downloaded before
+`reader read ID --figures` lists the images with their paths. `reader read` prints the text with
+absolute image paths. `reader figures --all` adds figures to papers downloaded before
 this existed, and cleans their text again.
 
 ## Install
 
 ```console
-uv tool install 'paperreader[browser,figures] @ git+https://github.com/gchrupala/reader'
-paper install-browser   # Chromium for the browser fallback; or set browser.channel = "chrome"
-paper config --init     # writes ~/.config/paperreader/config.toml
+uv tool install 'reader[browser,figures] @ git+https://github.com/gchrupala/reader'
+reader install-browser   # Chromium for the browser fallback; or set browser.channel = "chrome"
+reader config --init     # writes ~/.config/reader/config.toml
 ```
 
-or, from a checkout, `uv sync --all-extras` and run `uv run paper ...`.
+or, from a checkout, `uv sync --all-extras` and run `uv run reader ...`.
 
 Edit the config. The settings worth filling in:
 
 - `email`: Unpaywall requires it; Crossref and OpenAlex give identified clients better service.
-  It can also come from the `PAPERREADER_EMAIL` environment variable.
+  It can also come from the `READER_EMAIL` environment variable.
 - `keys.openalex`: [free](https://help.openalex.org/api/authentication/). Without one,
   OpenAlex requests share a small daily budget with everyone on your IP address,
   and title search (10x the cost of a lookup) runs out first. Without OpenAlex,
@@ -89,13 +89,13 @@ Edit the config. The settings worth filling in:
 
 ## Institutional access
 
-Run `paper login` once. A browser window opens on your proxy; sign in with your
+Run `reader login` once. A browser window opens on your proxy; sign in with your
 institution's SSO, then close the window. The session is kept in a private browser
-profile (`~/.local/state/paperreader/browser-profile`) and reused by later
-downloads until it expires; run `paper login` again then.
+profile (`~/.local/state/reader/browser-profile`) and reused by later
+downloads until it expires; run `reader login` again then.
 
 For publishers that support "Access through your institution" (Shibboleth,
-SeamlessAccess), `paper login https://dl.acm.org` (or any publisher site) lets you
+SeamlessAccess), `reader login https://dl.acm.org` (or any publisher site) lets you
 sign in there instead.
 
 To reuse the logins of your everyday Chrome instead, start it with
@@ -106,15 +106,15 @@ To reuse the logins of your everyday Chrome instead, start it with
 Many publisher sites sit behind Cloudflare or similar checks that reject scripts.
 The tool deals with them like this:
 
-- Plain HTTP requests identify themselves honestly (`paperreader/0.1 (+repo; mailto:you)`).
+- Plain HTTP requests identify themselves honestly (`reader/0.1 (+repo; mailto:you)`).
   Some publishers serve PDFs to that but block clients that pretend to be a browser.
 - The browser fallback is a real browser. In the default `mode = "auto"` it runs
   headless, and when a site shows a human check it opens a visible window and waits
   for you to complete the check. The cleared session is then reused.
 - A check you do not complete is not shown again: that site's other pages are skipped
   for the rest of the run, and for 12 hours (`check_memory_hours`) later runs open no
-  window for it; its papers fail at once and go to `paper pending`. `paper get --visible`
-  and `paper pending --retry` ask again. Closing the window or the tab during a check
+  window for it; its papers fail at once and go to `reader pending`. `reader get --visible`
+  and `reader pending --retry` ask again. Closing the window or the tab during a check
   skips the paper. One paper waits for you at most 180 s in all (`paper_wait`).
 - Cloudflare's error 1015 (a rate-limit ban, often given to scripts on the first request)
   is reported as "blocked by Cloudflare": waiting does not help, so it is not retried, and
@@ -133,8 +133,8 @@ The tool deals with them like this:
   each page the browser opens, waits for a slot from a per-host budget: by default at
   least 5 s between requests to the same host, at most 60 per hour and 300 per day.
   APIs get the rates they publish (arXiv: one request per 3 s). The budget lives in
-  a SQLite file, so parallel `paper` processes (as agents like to run) share it.
-  Override per host in `[rate_limits]`; `paper usage` shows consumption.
+  a SQLite file, so parallel `reader` processes (as agents like to run) share it.
+  Override per host in `[rate_limits]`; `reader usage` shows consumption.
 - **This matters for institutional access.** Publishers watch for "systematic
   downloading" and can suspend access for a whole institution's IP range. The
   defaults keep you well within what a person reading papers would do; be careful
@@ -146,23 +146,23 @@ The tool deals with them like this:
 ## Using it from an agent
 
 The CLI is designed to be driven by a coding agent such as Claude Code. This repository is
-also a Claude Code plugin marketplace with a `paper` skill (`plugin/skills/paper/SKILL.md`)
+also a Claude Code plugin marketplace with a `reader` skill (`plugin/skills/reader/SKILL.md`)
 that tells Claude when and how to use the CLI, in every session:
 
 ```console
 /plugin marketplace add gchrupala/reader
-/plugin install paper@reader
+/plugin install reader@reader
 ```
 
 The plugin does not install the CLI itself; do that as in [Install](#install).
 Instead of the plugin, something like this in your `CLAUDE.md` is enough:
 
 ```markdown
-To read a paper, run `paper get <DOI|arXiv id|URL|title>`; it prints the path of a
-Markdown text version, which you can read (use `paper read <id> --section Methods`
+To read a paper, run `reader get <DOI|arXiv id|URL|title>`; it prints the path of a
+Markdown text version, which you can read (use `reader read <id> --section Methods`
 or `--no-refs` for parts of long papers). Figures and tables are images linked from
-the text; open them to look at them (`paper read <id> --figures` lists them).
-`paper search <keywords>` finds DOIs.
+the text; open them to look at them (`reader read <id> --figures` lists them).
+`reader search <keywords>` finds DOIs.
 If `get` fails, report its reason to me instead of looking for other copies.
 ```
 
@@ -176,29 +176,29 @@ fetch them in one go and get the texts under those keys:
 $ cat keys.tsv
 roseberry2014	10.1111/cdev.12166
 zellers2022	arXiv:2201.02639
-$ paper get --from keys.tsv --export fulltext --name '{key}.txt'
+$ reader get --from keys.tsv --export fulltext --name '{key}.txt'
 ok    roseberry2014  ncbi-eutils
 ok    zellers2022    arxiv, submittedVersion
 ```
 
-The keys become the papers' keys in the library, so `paper read roseberry2014` and
-`paper bib roseberry2014` work too. `paper bib` prints BibTeX from the metadata
+The keys become the papers' keys in the library, so `reader read roseberry2014` and
+`reader bib roseberry2014` work too. `reader bib` prints BibTeX from the metadata
 (Crossref gives the volume, issue, pages, and the issue year that bibliographies cite).
 
 **Without a person at the browser** (a cloud container, `--no-browser`), human checks
 and sign-ins cannot be done. Every paper `get` could not fetch goes on a list,
-`paper pending`, with the reason and the page to open. At your own machine,
-`paper pending --retry` tries them again with a browser, and
-`paper add FILE [ID]` registers a PDF you downloaded yourself.
+`reader pending`, with the reason and the page to open. At your own machine,
+`reader pending --retry` tries them again with a browser, and
+`reader add FILE [ID]` registers a PDF you downloaded yourself.
 
 **Checked downloads.** Before a download is stored, its first pages must show the
 paper's DOI (or arXiv id or PMCID) or most of its title's words; otherwise it is rejected
 ("the download does not match the requested paper") and the next copy is tried. A URL
-that another paper in the library was downloaded from is refused. `paper verify` runs
+that another paper in the library was downloaded from is refused. `reader verify` runs
 the same check over the library and reports mismatches; `--remove` moves them into
-`mismatched/` so that `paper get` fetches them again.
+`mismatched/` so that `reader get` fetches them again.
 
-**Reading parts of a paper.** `paper read ID --sections` lists the headings
+**Reading parts of a paper.** `reader read ID --sections` lists the headings
 (Markdown headings for JATS sources, guessed for PDFs), `--section Results` prints
 one section (repeatable), and `--no-refs` leaves out the reference list. PDF text
 is cleaned of HAL cover pages and "Downloaded from ..." watermarks.
@@ -207,20 +207,20 @@ is cleaned of HAL cover pages and "Downloaded from ..." watermarks.
 
 | command | |
 | --- | --- |
-| `paper get ID...` | download into the library (`--from FILE`, `--key`, `--export DIR`, `--force`, `--no-browser`, `--visible`) |
-| `paper read ID` | print the text, fetching first if needed (`--pages 1-3,7`, `--sections`, `--section NAME`, `--no-refs`, `--figures`) |
-| `paper figures ID...` | list a paper's figure and table images; extract them for papers stored earlier (`--all`, `--rebuild`) |
-| `paper add FILE [ID]` | register a PDF you downloaded yourself, with its metadata |
-| `paper bib ID...` | BibTeX entries |
-| `paper pending` | papers that need a person (`--retry`, `--tsv`, `--json`, `--clear`) |
-| `paper resolve ID` | metadata and candidate URLs, no download |
-| `paper search WORDS` | find papers by title/keywords |
-| `paper list` | the library |
-| `paper verify [ID...]` | check that stored documents are the papers they are stored as (`--remove`, `--json`) |
-| `paper login [URL]` | sign in, in the tool's browser profile |
-| `paper usage` | requests per host against their budgets |
-| `paper install-browser` | download Chromium for the browser fallback |
-| `paper config [--init]` | show or create the configuration |
+| `reader get ID...` | download into the library (`--from FILE`, `--key`, `--export DIR`, `--force`, `--no-browser`, `--visible`) |
+| `reader read ID` | print the text, fetching first if needed (`--pages 1-3,7`, `--sections`, `--section NAME`, `--no-refs`, `--figures`) |
+| `reader figures ID...` | list a paper's figure and table images; extract them for papers stored earlier (`--all`, `--rebuild`) |
+| `reader add FILE [ID]` | register a PDF you downloaded yourself, with its metadata |
+| `reader bib ID...` | BibTeX entries |
+| `reader pending` | papers that need a person (`--retry`, `--tsv`, `--json`, `--clear`) |
+| `reader resolve ID` | metadata and candidate URLs, no download |
+| `reader search WORDS` | find papers by title/keywords |
+| `reader list` | the library |
+| `reader verify [ID...]` | check that stored documents are the papers they are stored as (`--remove`, `--json`) |
+| `reader login [URL]` | sign in, in the tool's browser profile |
+| `reader usage` | requests per host against their budgets |
+| `reader install-browser` | download Chromium for the browser fallback |
+| `reader config [--init]` | show or create the configuration |
 
 ## Development
 

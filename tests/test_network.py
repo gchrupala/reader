@@ -7,12 +7,12 @@ here is a reason to look, not proof of a bug.
 
 import pytest
 
-from paperreader.config import load
-from paperreader.fetch import Fetcher, FetchFailed
-from paperreader.http import Cache, PoliteClient
-from paperreader.identifiers import parse
-from paperreader.library import Library
-from paperreader.ratelimit import RateLimiter
+from reader.config import load
+from reader.fetch import Fetcher, FetchFailed
+from reader.http import Cache, PoliteClient
+from reader.identifiers import parse
+from reader.library import Library
+from reader.ratelimit import RateLimiter
 
 pytestmark = pytest.mark.network
 

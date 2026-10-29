@@ -2,7 +2,7 @@
 
 ## What this is
 
-`paper` (package `paperreader`, in `src/paperreader/`) is a command-line tool that
+`reader` (package `reader`, in `src/reader/`) is a command-line tool that
 downloads a research paper from a DOI, arXiv id, PMID/PMCID, ACL Anthology id,
 OpenReview id, OSF id, URL, exact title or library key. It stores the paper in the library
 (`~/papers` by default): the document (PDF, JATS XML, or arXiv's HTML plus its PDF), a Markdown
@@ -18,10 +18,10 @@ hand, and without putting unreasonable load on any server.
 ```console
 curl -LsSf https://astral.sh/uv/install.sh | sh   # only if uv is missing; installs to ~/.local/bin
 uv sync --all-extras         # install, with the extras: browser (Playwright) and figures (PyMuPDF, AGPL)
-uv run paper install-browser # Chromium for the browser route, once per machine (~/.cache/ms-playwright)
+uv run reader install-browser # Chromium for the browser route, once per machine (~/.cache/ms-playwright)
 uv run pytest                # unit tests; mocked transport, never touch the network
 uvx ruff check src tests     # lint (line length 120)
-uv run paper --help
+uv run reader --help
 ```
 
 Tests marked `network` hit real servers and are deselected by default; `uv run pytest -m network`
@@ -51,8 +51,11 @@ runs the real papers from `docs/literature-review-use-case.md` (no browser, your
 | `cli.py` | `get`, `read`, `figures`, `add`, `bib`, `pending`, `resolve`, `search`, `list`, `verify`, `login`, `usage`, `install-browser`, `config` |
 
 The repository is also a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) with one plugin,
-`plugin/`, whose skill `plugin/skills/paper/SKILL.md` tells agents how to use the CLI. Keep it in step with
+`plugin/`, whose skill `plugin/skills/reader/SKILL.md` tells agents how to use the CLI. Keep it in step with
 the commands; `claude plugin validate .` checks the manifests.
+
+The tool used to be `paperreader` with the command `paper`. Config and state directories under that name are
+moved to `reader` on first use, and `PAPERREADER_*` variables and sidecars keyed `paperreader` are still read.
 
 ## Fetch order
 
@@ -84,14 +87,14 @@ Politeness:
   per day. APIs get their published rates (arXiv: one request per 3 s). Be careful
   raising publisher limits: publishers can cut off a whole university's access over
   bulk downloading.
-- `paper usage` shows consumption against the budgets.
+- `reader usage` shows consumption against the budgets.
 
 Dealing with blocking:
-- Plain HTTP requests identify themselves honestly (`paperreader/<version> (+repo; mailto:...)`).
+- Plain HTTP requests identify themselves honestly (`reader/<version> (+repo; mailto:...)`).
 - When a site shows a human check, a visible browser window opens and the user completes it;
   the session is reused afterwards. A check nobody completes is not shown again for that site: not
   for the rest of the run, and not for `browser.check_memory_hours` (12) in later runs unless they are
-  `--visible` or `paper pending --retry`. One paper waits for a person at most `browser.paper_wait`
+  `--visible` or `reader pending --retry`. One paper waits for a person at most `browser.paper_wait`
   (180 s). Closing the window or tab during a check skips the paper.
 - Automated CAPTCHA solving is allowed (the user approved it) but not implemented yet. If
   added, it must go through the same per-host rate limits as everything else.
@@ -103,18 +106,18 @@ Dealing with blocking:
 Storage:
 - Every download is checked against the requested paper before it is stored (`verify.check`): its first
   pages show the DOI, arXiv id or PMCID, or most of the title's words. A URL that is already the source of
-  another paper in the library is refused. `paper verify` runs the same check over the library.
+  another paper in the library is refused. `reader verify` runs the same check over the library.
 
 ## Status
 
 Verified on real papers: arXiv, ACL Anthology, PMLR, HAL (the green open-access copy of a
 paywalled Nature paper) and PubMed Central. The browser's PDF download path works.
 The institutional proxy works: on 10 October 2026 an IEEE paper came through Tilburg's EZproxy
-after `paper login`, with the saved session and a visible window.
+after `reader login`, with the saved session and a visible window.
 Figures and tables were checked by eye on about 40 papers in the user's library (PNAS, IEEE, Royal
 Society, Cognitive Science, CVPR-style arXiv, APA manuscripts, PMC author manuscripts): crops are
 complete; a few pages with unusual captions are rendered whole.
-There are 144 unit tests, all passing, and 24 network tests.
+There are 145 unit tests, all passing, and 24 network tests.
 
 The handling of human checks (issue #4) was tested with a fake browser in the unit tests, and with real
 headless Chromium against a local server (check not completed, mark remembered by the next process,
@@ -138,13 +141,13 @@ Not verified:
 
 ## Setup the user needs
 
-`paper config --init` writes `~/.config/paperreader/config.toml`. Then:
+`reader config --init` writes `~/.config/reader/config.toml`. Then:
 - `email`: required by Unpaywall.
 - `keys.openalex`: free. Without it, OpenAlex shares a small daily allowance with everyone
   on the same IP address; once it runs out, title search falls back to Crossref, which
   matches poorly (it did not find "Attention is all you need"). The key can also come from
   the `OPENALEX_API_KEY` environment variable (how cloud sessions get it).
-- `institution.proxy`: the library's proxy URL template, then `paper login` once to sign in.
+- `institution.proxy`: the library's proxy URL template, then `reader login` once to sign in.
   Tilburg University uses OCLC-hosted EZproxy: `https://tilburguniversity.idm.oclc.org/login?url={url}`,
   which signs in through SURFconext.
 
@@ -175,7 +178,7 @@ Not verified:
 - Microsoft's sign-in page has a `<noscript>` refresh to `/jsdisabled`; the page parser ignores
   everything inside `<noscript>`.
 - EZproxy and the identity providers keep the sign-in in session cookies, which Chromium drops on exit.
-  `browser.py` saves them to `session-cookies.json` in the state directory (also while `paper login`
+  `browser.py` saves them to `session-cookies.json` in the state directory (also while `reader login`
   is open) and restores them at the next start.
 - A visible Chromium (153) crashes with SIGTRAP when a download starts if its history lists an earlier
   download. `_forget_downloads` clears the download tables of the profile's `History` before each launch.
@@ -190,7 +193,7 @@ Not verified:
   redirects to the preprint; its `primary_file` gives the file, whose `links.download` is the PDF.
 - OpenAlex's `publication_year` is often the online year; bibliographies cite the issue year. Crossref's
   `published-print` gives it, so the Crossref lookup after a download replaces the year (not for
-  `posted-content`). It also gives volume, issue and pages for `paper bib`.
+  `posted-content`). It also gives volume, issue and pages for `reader bib`.
 - Europe PMC's rendered PDF (`europepmc.org/articles/PMC…?pdf=render`) refuses scripts with 403; it is a
   candidate anyway, so it lands in the browser queue for papers whose publisher refuses XML (PNAS).
   Headless, it shows Cloudflare's "Just a moment..."; in the visible window that follows, the check
@@ -225,7 +228,7 @@ Not verified:
 - Through the proxy, Science's page for a 1977 article offers "Check Access" and "Purchase", and its PDF URL
   returns that page: Tilburg seems to lack the archive. 10.1121/10.0040820 is an ASA meeting abstract in a
   JASA supplement, with no PDF.
-- Twice on 10 October 2026 a `paper get` hung for good in its first browser page (a proxied Elsevier DOI,
+- Twice on 10 October 2026 a `reader get` hung for good in its first browser page (a proxied Elsevier DOI,
   headless): Python waited on a Playwright call that never returned while the browser sat idle, with no
   download started. It did not happen in 8 repeats of that page alone, nor against a local server with a
   meta refresh into a large 403 page; the cause is not known. Since then a page load that runs past
