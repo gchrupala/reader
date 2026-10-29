@@ -1,6 +1,6 @@
 """Per-host request budgets shared by every process on the machine.
 
-An agent may run several `reader` commands at once, so the budget lives in a
+An agent may run several `paper` commands at once, so the budget lives in a
 SQLite file rather than in memory. Each request reserves the next free slot for
 its host inside a write transaction, then sleeps until that slot arrives.
 

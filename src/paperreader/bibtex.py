@@ -1,4 +1,4 @@
-"""BibTeX entries from the metadata `reader get` collects (Crossref for type, volume, issue and pages)."""
+"""BibTeX entries from the metadata `paper get` collects (Crossref for type, volume, issue and pages)."""
 
 from __future__ import annotations
 

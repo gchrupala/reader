@@ -4,7 +4,7 @@ import pytest
 from click.testing import CliRunner
 from conftest import make_pdf
 
-from reader import cli as cli_mod
+from paperreader import cli as cli_mod
 
 PDF = make_pdf(["Deep learning", "Yann LeCun", "doi:10.1038/nature14539"])
 OPENALEX = "https://api.openalex.org/works/doi:10.1038/nature14539"
@@ -70,8 +70,8 @@ def test_add_a_pdf_downloaded_by_hand(run, router, config, tmp_path):
 
 
 def test_verify_reports_mismatches_and_changes_nothing_without_remove(run, config):
-    from reader.library import Library
-    from reader.models import Paper
+    from paperreader.library import Library
+    from paperreader.models import Paper
 
     lib = Library(config.library_dir)
     good_pdf = make_pdf(["Deep learning", "Yann LeCun, Yoshua Bengio and Geoffrey Hinton",
@@ -116,24 +116,5 @@ def test_read_shows_figures_with_absolute_paths(run, router, config):
                    f"p2    Table 1. Numbers.\n      {figdir}/p2-table-1.png\n")
     text = run("read", "10.1038/nature14539").output
     assert f"![Figure 1. A blue box, for testing.]({figdir}/p2-figure-1.png)" in text
-    # Papers stored before figures existed get them with `reader figures`.
+    # Papers stored before figures existed get them with `paper figures`.
     assert run("figures", "lecun2015-deep-learning", "--rebuild", "--no-browser").output == out
-
-
-def test_config_and_state_move_from_the_former_name(tmp_path, monkeypatch):
-    from reader.config import Config, default_config_path, load
-
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
-    monkeypatch.delenv("READER_CONFIG", raising=False)
-    monkeypatch.delenv("READER_EMAIL", raising=False)
-    monkeypatch.setenv("PAPERREADER_EMAIL", "me@example.org")
-    (tmp_path / "config" / "paperreader").mkdir(parents=True)
-    (tmp_path / "config" / "paperreader" / "config.toml").write_text('library_dir = "~/elsewhere"\n')
-    (tmp_path / "state" / "paperreader" / "browser-profile").mkdir(parents=True)
-
-    assert default_config_path() == tmp_path / "config" / "reader" / "config.toml"
-    cfg = load(default_config_path())
-    assert cfg.library_dir.name == "elsewhere" and cfg.email == "me@example.org"
-    assert Config().browser_profile.is_dir() and Config().state_dir == tmp_path / "state" / "reader"
-    assert not (tmp_path / "config" / "paperreader").exists()

@@ -339,7 +339,7 @@ class Fetcher:
         # Other pages of the paper at the same address lead to the same check.
         run.unfinished.update({site: why, _site(urlsplit(url).hostname or ""): why})
         self._unfinished[site] = why
-        if not w.sign_in:  # `reader login` is the way to sign in; a check has no other way
+        if not w.sign_in:  # `paper login` is the way to sign in; a check has no other way
             self.client.limiter.mark_check(site, url)
         if not self.keep_visible:
             self.visible = False  # nobody is being asked anything now: hide the window
@@ -641,8 +641,8 @@ class Fetcher:
                 lines.append(image_line(alt or name, name))
             if not lines and spec.kind == "figure" and paper.pmcid and spec.ident:
                 where = f"https://pmc.ncbi.nlm.nih.gov/articles/{paper.pmcid}/figure/{spec.ident}/"
-                lines.append("(The image is not open to scripts; with the browser, `reader figures --rebuild` gets "
-                             f"it; or see {where})")
+                lines.append(f"(The image is not open to scripts; with the browser, `paper figures --rebuild` gets it; "
+                             f"or see {where})")
             return "\n\n".join(lines)
 
         text = MARKER_RE.sub(resolve, text)
@@ -741,15 +741,15 @@ class Fetcher:
             hints.append("some sites refused plain HTTP and the browser fallback is off "
                          "(enable it in the config, or drop --no-browser)")
         if any(a.via == "browser" and CHECK_HOST_RE.match(a.detail) for a in run.attempts) and not self.recheck:
-            hints.append("a site asked for a human check: when you can do it, run `reader pending --retry` "
+            hints.append("a site asked for a human check: when you can do it, run `paper pending --retry` "
                          "(or rerun with --visible) and complete it in the window")
         if any(a.detail == "sign-in required" or a.detail.startswith("sign-in at") for a in run.attempts):
-            hints.append("the proxy asked you to sign in: run `reader login`, then try again")
+            hints.append("the proxy asked you to sign in: run `paper login`, then try again")
         elif blocked and not self.config.proxy:
             hints.append("for paywalled papers: set institution.proxy in the config, or sign in on the "
-                         "publisher's site once with `reader login <url>` (\"access through your institution\")")
+                         "publisher's site once with `paper login <url>` (\"access through your institution\")")
         elif blocked:
-            hints.append("if your proxy session expired, sign in again with `reader login`")
+            hints.append("if your proxy session expired, sign in again with `paper login`")
         if any(a.outcome == "skipped" and (a.detail == "host budget used up" or ": reached " in a.detail)
                for a in run.attempts):
             hints.append("a per-host request budget was used up; try later or raise it in [rate_limits]")

@@ -1,9 +1,9 @@
 import httpx
 import pytest
 
-from reader.config import Config, Limit
-from reader.http import Cache, CloudflareBlocked, PoliteClient, RateLimited, retry_after_seconds
-from reader.ratelimit import QuotaExceeded, RateLimiter
+from paperreader.config import Config, Limit
+from paperreader.http import Cache, CloudflareBlocked, PoliteClient, RateLimited, retry_after_seconds
+from paperreader.ratelimit import QuotaExceeded, RateLimiter
 
 
 def limiter(tmp_path, clock, limit):
@@ -57,7 +57,7 @@ def test_unfinished_checks_are_remembered_for_a_while(tmp_path, clock):
 
 
 def test_check_waits_from_the_config(tmp_path):
-    from reader.config import load
+    from paperreader.config import load
 
     path = tmp_path / "config.toml"
     path.write_text("[browser]\npaper_wait = 60\ncheck_memory_hours = 2\n")
@@ -137,11 +137,11 @@ def test_user_agent_identifies_us(tmp_path, clock, router):
     router.add("https://x.example/", content=b"")
     c.get("https://x.example/")
     ua = router.requests[0].headers["user-agent"]
-    assert ua.startswith("reader/") and "mailto:me@example.edu" in ua
+    assert ua.startswith("paperreader/") and "mailto:me@example.edu" in ua
 
 
 def test_api_keys_from_environment(tmp_path, monkeypatch):
-    from reader.config import load
+    from paperreader.config import load
 
     monkeypatch.setenv("OPENALEX_API_KEY", "from-env")
     assert load(tmp_path / "missing.toml").openalex_key == "from-env"
@@ -151,7 +151,7 @@ def test_api_keys_from_environment(tmp_path, monkeypatch):
 
 
 def test_email_from_environment(tmp_path, monkeypatch):
-    from reader.config import load
+    from paperreader.config import load
 
-    monkeypatch.setenv("READER_EMAIL", "agent@example.edu")
+    monkeypatch.setenv("PAPERREADER_EMAIL", "agent@example.edu")
     assert load(tmp_path / "missing.toml").email == "agent@example.edu"

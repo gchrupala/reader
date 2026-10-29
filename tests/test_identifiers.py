@@ -1,6 +1,6 @@
 import pytest
 
-from reader.identifiers import Identifier, UnrecognizedIdentifier, parse
+from paperreader.identifiers import Identifier, UnrecognizedIdentifier, parse
 
 
 @pytest.mark.parametrize(

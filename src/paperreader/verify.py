@@ -1,7 +1,7 @@
 """Check that a document is the paper it is stored as.
 
 A browser download once put one paper's PDF under another paper's DOI. So before a download is
-stored, and in `reader verify`, the first pages are compared with the metadata: they should show
+stored, and in `paper verify`, the first pages are compared with the metadata: they should show
 the DOI (or the arXiv id or PMCID), or most of the title's distinctive words close together.
 Text is compared as lowercase letters and digits only, so ligatures, accents, hyphenation at
 line ends, punctuation and spacing do not matter.
@@ -95,7 +95,7 @@ def _most_words_together(words: list[str], text: str, width: int) -> int:
 
 
 def check(paper: Paper, text: str) -> Verdict:
-    """Is `text` (the first pages) the paper described by `reader`?"""
+    """Is `text` (the first pages) the paper described by `paper`?"""
     squashed = _squash(text)
     if len(squashed) < MIN_TEXT:
         return Verdict(None, "no text on the first pages")

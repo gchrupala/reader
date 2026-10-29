@@ -96,7 +96,7 @@ def retry_after_seconds(value: str | None, now: float | None = None) -> float | 
 
 def user_agent(email_addr: str | None) -> str:
     contact = f"; mailto:{email_addr}" if email_addr else ""
-    return f"reader/{__version__} (+https://github.com/gchrupala/reader{contact})"
+    return f"paperreader/{__version__} (+https://github.com/gchrupala/reader{contact})"
 
 
 class Cache:

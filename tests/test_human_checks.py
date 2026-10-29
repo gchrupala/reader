@@ -6,8 +6,8 @@ import httpx
 import pytest
 from conftest import make_pdf
 
-from reader import fetch as fetch_mod
-from reader.browser import (
+from paperreader import fetch as fetch_mod
+from paperreader.browser import (
     CHALLENGE_HEADER,
     SIGN_IN,
     Browser,
@@ -16,10 +16,10 @@ from reader.browser import (
     PersonWait,
     _launch_args,
 )
-from reader.fetch import Fetcher, FetchFailed
-from reader.http import Response
-from reader.identifiers import parse
-from reader.library import Library
+from paperreader.fetch import Fetcher, FetchFailed
+from paperreader.http import Response
+from paperreader.identifiers import parse
+from paperreader.library import Library
 
 DOI = "10.1126/science.198.4316.519"
 SCIENCE_PDF = f"https://www.science.org/doi/pdf/{DOI}"
@@ -90,7 +90,7 @@ def test_a_check_nobody_completes_is_shown_once(setup, client, config):
     assert not browser.visible  # hidden again once nobody is being asked anything
     assert [a.detail for a in e.value.attempts if a.via == "browser"] == ["bot check", "bot check at www.science.org"]
     assert e.value.reason == "human check at www.science.org"
-    assert any("reader pending --retry" in h for h in e.value.hints)
+    assert any("paper pending --retry" in h for h in e.value.hints)
     assert client.limiter.unfinished_check("science.org", config.browser_check_memory) == SCIENCE_PDF
 
 
@@ -108,7 +108,7 @@ def test_later_runs_skip_the_site_unless_rechecking_and_a_passed_check_clears_it
         (DOI_URL, "human check at science.org not completed earlier (--visible tries again)")]
     assert e.value.reason == "human check at www.science.org"
 
-    # `reader pending --retry` asks again; the person passes the check, which clears the mark.
+    # `paper pending --retry` asks again; the person passes the check, which clears the mark.
     browser = FakeBrowser(person="passes")
     rec = setup(browser, recheck=True).get(parse(DOI))
     assert browser.asked == ["www.science.org"] and rec.source["via"] == "browser"
@@ -155,7 +155,7 @@ def test_a_batch_asks_once_per_site(setup, router):
     router.add(f"https://www.science.org/doi/pdf/{other}", status=403)
     router.add(f"https://doi.org/{other}", status=403)
     browser = FakeBrowser()
-    f = setup(browser, recheck=True)  # even in `reader pending --retry`
+    f = setup(browser, recheck=True)  # even in `paper pending --retry`
     for doi in (DOI, other):
         with pytest.raises(FetchFailed):
             f.get(parse(doi))
@@ -206,7 +206,7 @@ def test_an_unfinished_sign_in_is_asked_once_per_run_and_not_remembered(setup, c
 
 
 def test_the_browser_does_not_announce_automation(config):
-    # The headless browser, the visible window for a check and `reader login` all launch with these (#9).
+    # The headless browser, the visible window for a check and `paper login` all launch with these (#9).
     for executable in (None, "/usr/bin/chromium"):
         config.browser_executable = executable
         args = _launch_args(config)
@@ -221,7 +221,7 @@ def test_a_page_in_the_real_browser_sees_no_webdriver(config, client):
     try:
         browser._start()
     except BrowserUnavailable:
-        pytest.skip("no browser installed (reader install-browser)")
+        pytest.skip("no browser installed (paper install-browser)")
     try:
         page = browser._ctx.new_page()
         page.set_content("<p>a local page</p>")
@@ -237,7 +237,7 @@ def test_a_hung_browser_is_ended_and_the_next_page_starts_a_new_one(config, clie
     import time
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    from reader import browser as browser_mod
+    from paperreader import browser as browser_mod
 
     class Page(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -261,7 +261,7 @@ def test_a_hung_browser_is_ended_and_the_next_page_starts_a_new_one(config, clie
         try:
             browser._start()
         except BrowserUnavailable:
-            pytest.skip("no browser installed (reader install-browser)")
+            pytest.skip("no browser installed (paper install-browser)")
         if browser._pid is None:
             pytest.skip("no profile lock to find the browser process (Windows)")
         start = time.monotonic()

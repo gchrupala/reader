@@ -1,7 +1,7 @@
 """Papers that need a person: a human check, a sign-in, or a download by hand.
 
-An agent without a display (a cloud container, say) cannot do these. `reader get` notes them
-here, and `reader pending` lists them for when the person is at their own machine.
+An agent without a display (a cloud container, say) cannot do these. `paper get` notes them
+here, and `paper pending` lists them for when the person is at their own machine.
 """
 
 from __future__ import annotations

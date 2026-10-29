@@ -13,28 +13,11 @@ def _xdg(var: str, default: str) -> Path:
     return Path(os.environ.get(var) or Path.home() / default)
 
 
-def _app_dir(var: str, default: str) -> Path:
-    """reader's directory under an XDG base, moved there from the tool's former name, paperreader."""
-    base = _xdg(var, default)
-    path, old = base / "reader", base / "paperreader"
-    if not path.exists() and old.is_dir():
-        try:
-            old.rename(path)
-        except OSError:
-            return old
-    return path
-
-
-def _env(var: str) -> str | None:
-    """READER_* variables, also under their former PAPERREADER_* names."""
-    return os.environ.get(var) or (os.environ.get("PAPER" + var) if var.startswith("READER_") else None)
-
-
 def default_config_path() -> Path:
-    env = _env("READER_CONFIG")
+    env = os.environ.get("PAPERREADER_CONFIG")
     if env:
         return Path(env).expanduser()
-    return _app_dir("XDG_CONFIG_HOME", ".config") / "config.toml"
+    return _xdg("XDG_CONFIG_HOME", ".config") / "paperreader" / "config.toml"
 
 
 @dataclass(frozen=True)
@@ -74,7 +57,7 @@ BUILTIN_LIMITS: dict[str, Limit] = {
 class Config:
     email: str | None = None
     library_dir: Path = field(default_factory=lambda: Path.home() / "papers")
-    state_dir: Path = field(default_factory=lambda: _app_dir("XDG_STATE_HOME", ".local/state"))
+    state_dir: Path = field(default_factory=lambda: _xdg("XDG_STATE_HOME", ".local/state") / "paperreader")
 
     # Institutional access: URL template with {url} (raw) or {url_encoded}, e.g.
     # "https://login.ezproxy.example.edu/login?url={url}" or an OpenAthens redirector.
@@ -127,7 +110,7 @@ def _limit(d: dict, base: Limit) -> Limit:
 
 # The email and API keys can also come from the environment, e.g. secrets of a cloud environment.
 ENV_VARS = {
-    "email": "READER_EMAIL",
+    "email": "PAPERREADER_EMAIL",
     "openalex_key": "OPENALEX_API_KEY",
     "semantic_scholar_key": "SEMANTIC_SCHOLAR_API_KEY",
     "elsevier_key": "ELSEVIER_API_KEY",
@@ -141,8 +124,8 @@ def load(path: Path | None = None) -> Config:
     if path.exists():
         _load_file(cfg, path)
     for attr, var in ENV_VARS.items():
-        if not getattr(cfg, attr) and _env(var):
-            setattr(cfg, attr, _env(var))
+        if not getattr(cfg, attr) and os.environ.get(var):
+            setattr(cfg, attr, os.environ[var])
     return cfg
 
 
@@ -186,11 +169,11 @@ def _load_file(cfg: Config, path: Path) -> None:
 
 
 TEMPLATE = """\
-# reader configuration
+# paperreader configuration
 
 # Used for the Unpaywall API (required there) and to identify yourself to
 # Crossref/OpenAlex, which give identified clients better service.
-# Can instead be set in the environment: READER_EMAIL.
+# Can instead be set in the environment: PAPERREADER_EMAIL.
 email = ""
 
 # Where downloaded papers (PDF + extracted text + metadata) are stored.
@@ -201,7 +184,7 @@ library_dir = "~/papers"
 # ({url_encoded} for the percent-encoded form). Examples:
 #   EZproxy:    "https://login.ezproxy.example.edu/login?url={url}"
 #   OpenAthens: "https://go.openathens.net/redirector/example.edu?url={url_encoded}"
-# Log in once with `reader login`; the session lives in a private browser profile.
+# Log in once with `paper login`; the session lives in a private browser profile.
 proxy = ""
 
 [keys]
@@ -214,7 +197,7 @@ elsevier_insttoken = "" # optional; issued by Elsevier to your institution
 
 [browser]
 # The browser is used for sites that refuse plain HTTP clients and for
-# institutional sessions. Needs: pip install 'reader[browser]'
+# institutional sessions. Needs: pip install 'paperreader[browser]'
 enabled = true
 # auto: headless, but open a visible window when a site asks for a human check
 mode = "auto"
@@ -229,7 +212,7 @@ cdp_url = ""
 # challenge_wait = 120
 # paper_wait = 180
 # A site whose check you did not complete opens no window for this many hours
-# (its papers fail at once and go to `reader pending`); --visible tries it anyway.
+# (its papers fail at once and go to `paper pending`); --visible tries it anyway.
 # check_memory_hours = 12
 
 # Politeness budgets per host (parent domains match subdomains).

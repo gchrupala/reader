@@ -1,4 +1,4 @@
-"""Command line interface: `reader get`, `reader read`, ..."""
+"""Command line interface: `paper get`, `paper read`, ..."""
 
 from __future__ import annotations
 
@@ -162,7 +162,7 @@ def _export(rec: Record, key: str | None, directory: Path, name: str) -> Path:
 
 def _fetch_all(app: App, fetcher: Fetcher, items, *, force=False, as_json=False, quiet=False,
                export: Path | None = None, name: str = "{key}.md") -> bool:
-    """Get each (key, identifier); report as `reader get` does. Returns whether all succeeded."""
+    """Get each (key, identifier); report as `paper get` does. Returns whether all succeeded."""
     single = len(items) == 1 and not as_json
     results, rows, noted = [], [], False
     try:
@@ -192,7 +192,7 @@ def _fetch_all(app: App, fetcher: Fetcher, items, *, force=False, as_json=False,
                     _err(f"{text}: {e}\n  why:  {e.reason}" + (f"\n  open: {e.open_url}" if e.open_url else ""))
                     for h in e.hints:
                         _err(f"  hint: {h}")
-                    _err("  (listed in `reader pending`)")
+                    _err("  (listed in `paper pending`)")
             except (click.UsageError, QuotaExceeded, ValueError) as e:
                 msg = e.format_message() if isinstance(e, click.UsageError) else str(e)
                 results.append({"input": text, "ok": False, "error": msg})
@@ -207,7 +207,7 @@ def _fetch_all(app: App, fetcher: Fetcher, items, *, force=False, as_json=False,
         width = min(40, max(len(r[1]) for r in rows))
         click.echo("\n".join(f"{status:4}  {label:{width}}  {detail}" for status, label, detail in rows))
         if noted:
-            click.echo("(failed downloads are listed in `reader pending`)")
+            click.echo("(failed downloads are listed in `paper pending`)")
     return all(r["ok"] for r in results)
 
 
@@ -228,7 +228,7 @@ def get(app: App, papers, from_file, key, export, name, as_json, force, browser,
     """Download papers into the library and extract their text.
 
     With several papers, ends with one line per paper: ok and the source, or why it failed.
-    Failures are kept in `reader pending`.
+    Failures are kept in `paper pending`.
     """
     items = [(None, p) for p in papers] + (_read_list(from_file) if from_file else [])
     if not items:
@@ -324,7 +324,7 @@ def read(app: App, paper, pages, list_sections, wanted, no_refs, list_figures, b
     if wanted:
         text, missing = sections.extract(text, list(wanted))
         if missing:
-            _err(f"no section matching {', '.join(missing)}; see `reader read {paper} --sections`")
+            _err(f"no section matching {', '.join(missing)}; see `paper read {paper} --sections`")
             if not text:
                 sys.exit(1)
     click.echo(text)
@@ -381,7 +381,7 @@ def list_(app: App, as_json):
 
 
 def _id_in_text(text: str) -> str | None:
-    """A DOI or arXiv id on the first pages of a paper, for `reader add` without an identifier."""
+    """A DOI or arXiv id on the first pages of a paper, for `paper add` without an identifier."""
     head = re.split(r"<!-- page 3 -->", text)[0]
     if m := re.search(r"arXiv:\s*(\d{4}\.\d{4,5})", head):
         return f"arXiv:{m.group(1)}"
@@ -410,7 +410,7 @@ def add(app: App, file: Path, paper, key, force):
     if not paper:
         paper = _id_in_text(pdf_to_text(content)) if is_pdf(content) else None
         if not paper:
-            raise click.UsageError("no DOI or arXiv id found in the file; give one: reader add FILE ID")
+            raise click.UsageError("no DOI or arXiv id found in the file; give one: paper add FILE ID")
         _err(f"using {paper}, found in the file")
     ident = _identify(app, paper)
     if (rec := app.library.find(Paper.from_identifier(ident))) and not force:
@@ -452,7 +452,7 @@ def figures(app: App, papers, everything, rebuild, browser, visible, quiet):
         for text in papers:
             rec = app.library.by_key(text.strip()) or app.library.find(Paper.from_identifier(_identify(app, text)))
             if rec is None:
-                raise click.ClickException(f"{text} is not in the library; `reader get` it first")
+                raise click.ClickException(f"{text} is not in the library; `paper get` it first")
             if rebuild or "figures" not in rec.source:
                 rec = fetcher.rebuild(rec)
             if len(papers) > 1:
@@ -490,14 +490,14 @@ def bib(app: App, papers, key):
 
 @cli.command()
 @click.option("--json", "as_json", is_flag=True)
-@click.option("--tsv", is_flag=True, help="`key<TAB>identifier` lines, for `reader get --from -` elsewhere.")
+@click.option("--tsv", is_flag=True, help="`key<TAB>identifier` lines, for `paper get --from -` elsewhere.")
 @click.option("--retry", is_flag=True, help="Try them all again now (a browser window opens for checks).")
 @click.option("--clear", is_flag=True, help="Forget them.")
 @click.pass_obj
 def pending(app: App, as_json, tsv, retry, clear):
     """Papers that need a person: a human check, a sign-in, or a download by hand.
 
-    `reader get` adds every paper it could not fetch and removes it once it has it.
+    `paper get` adds every paper it could not fetch and removes it once it has it.
     """
     entries = app.pending.all()
     if clear:
@@ -533,7 +533,7 @@ def pending(app: App, as_json, tsv, retry, clear):
 def verify(app: App, papers, remove, as_json):
     """Check that each stored document is the paper it is stored as (all papers by default).
 
-    Its first pages should show the DOI, or most of the title's words: the check `reader get` makes
+    Its first pages should show the DOI, or most of the title's words: the check `paper get` makes
     before storing a download. Changes nothing unless --remove is given.
     """
     recs = []
@@ -560,7 +560,7 @@ def verify(app: App, papers, remove, as_json):
         click.echo(f"{'MISMATCH' if verdict.ok is False else '?':8}  {rec.key}  {rec.paper.title or ''}")
         click.echo(f"          {verdict.detail}")
         if "moved_to" in result:
-            click.echo(f"          moved to {result['moved_to']}; `reader get {rec.paper.ids()[0]}` fetches it again")
+            click.echo(f"          moved to {result['moved_to']}; `paper get {rec.paper.ids()[0]}` fetches it again")
     if as_json:
         click.echo(json.dumps(results, indent=2, ensure_ascii=False))
     else:
@@ -575,7 +575,7 @@ def verify(app: App, papers, remove, as_json):
 def login(app: App, url):
     """Open the browser so you can sign in (library proxy or a publisher site).
 
-    The session is stored in reader's private browser profile and reused
+    The session is stored in paperreader's private browser profile and reused
     by later downloads. Without URL, opens your institution's proxy.
     """
     if not url:

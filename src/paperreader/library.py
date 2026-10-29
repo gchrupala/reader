@@ -107,7 +107,7 @@ class Library:
                 data = json.loads(path.read_text())
             except (OSError, ValueError):
                 continue
-            if isinstance(data, dict) and SIDECAR_VERSION in (data.get("reader"), data.get("paperreader")):
+            if isinstance(data, dict) and data.get("paperreader") == SIDECAR_VERSION:
                 yield path, data
 
     def _record(self, path: Path, data: dict) -> Record:
@@ -159,14 +159,14 @@ class Library:
             text_path = self.root / files["text"]
             text = text_path.read_text().replace(f"]({rec.key}.figures/", f"]({key}.figures/")
             _atomic_write(text_path, text.encode())
-        sidecar = {"reader": SIDECAR_VERSION, "paper": rec.paper.to_dict(), "source": rec.source, "files": files}
+        sidecar = {"paperreader": SIDECAR_VERSION, "paper": rec.paper.to_dict(), "source": rec.source, "files": files}
         _atomic_write(self.root / f"{key}.json", json.dumps(sidecar, indent=2, ensure_ascii=False).encode())
         (self.root / f"{rec.key}.json").unlink()
         return self._record(self.root / f"{key}.json", sidecar)
 
     def update_paper(self, rec: Record, paper: Paper) -> Record:
         """Store richer metadata for a paper already in the library."""
-        sidecar = {"reader": SIDECAR_VERSION, "paper": paper.to_dict(), "source": rec.source,
+        sidecar = {"paperreader": SIDECAR_VERSION, "paper": paper.to_dict(), "source": rec.source,
                    "files": {k: v.name for k, v in rec.files.items()}}
         _atomic_write(self.root / f"{rec.key}.json", json.dumps(sidecar, indent=2, ensure_ascii=False).encode())
         return self._record(self.root / f"{rec.key}.json", sidecar)
@@ -229,6 +229,6 @@ class Library:
         text = text.replace(FIGDIR, figdir.name)
         _atomic_write(self.root / files[fmt], content)
         _atomic_write(self.root / files["text"], (header(paper, source) + text + "\n").encode())
-        sidecar = {"reader": SIDECAR_VERSION, "paper": paper.to_dict(), "source": source, "files": files}
+        sidecar = {"paperreader": SIDECAR_VERSION, "paper": paper.to_dict(), "source": source, "files": files}
         _atomic_write(self.root / f"{key}.json", json.dumps(sidecar, indent=2, ensure_ascii=False).encode())
         return self._record(self.root / f"{key}.json", sidecar)

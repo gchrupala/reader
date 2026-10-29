@@ -1,13 +1,13 @@
 import pytest
 from conftest import make_pdf
 
-from reader.browser import load_session_cookies, save_session_cookies
-from reader.config import Config
-from reader.extract import is_pdf, jats_to_text, pdf_info, pdf_to_text
-from reader.html import looks_like_challenge, looks_like_sign_in, parse_page, refuses_headless
-from reader.library import Library, base_key
-from reader.models import Paper
-from reader.publishers import proxied, publisher_pdf_url
+from paperreader.browser import load_session_cookies, save_session_cookies
+from paperreader.config import Config
+from paperreader.extract import is_pdf, jats_to_text, pdf_info, pdf_to_text
+from paperreader.html import looks_like_challenge, looks_like_sign_in, parse_page, refuses_headless
+from paperreader.library import Library, base_key
+from paperreader.models import Paper
+from paperreader.publishers import proxied, publisher_pdf_url
 
 
 def test_pdf_text_has_page_markers():
@@ -122,7 +122,7 @@ def test_session_cookies_survive_and_expire(config, monkeypatch):
     path = config.state_dir / "session-cookies.json"
     assert path.stat().st_mode & 0o777 == 0o600
     assert [c["name"] for c in load_session_cookies(config)] == ["ezproxy"]  # Chromium keeps the persistent one
-    monkeypatch.setattr("reader.browser.time.time", lambda: path.stat().st_mtime + 2 * 24 * 3600)
+    monkeypatch.setattr("paperreader.browser.time.time", lambda: path.stat().st_mtime + 2 * 24 * 3600)
     assert load_session_cookies(config) == []
 
 
@@ -158,7 +158,7 @@ def test_publisher_urls_and_proxy():
 def test_download_history_is_forgotten(tmp_path):
     import sqlite3
 
-    from reader.browser import _forget_downloads
+    from paperreader.browser import _forget_downloads
 
     history = tmp_path / "Default" / "History"
     history.parent.mkdir()
@@ -178,7 +178,7 @@ def test_download_history_is_forgotten(tmp_path):
 
 
 def test_pdf_text_cleaning():
-    from reader.extract import _clean, _is_hal_cover
+    from paperreader.extract import _clean, _is_hal_cover
 
     raw = ("it showed effects [F(2, 42) = 17.37, p = 3.2e\r\n−6\r\n, η2 = .453] and more\r\n"
            "Downloaded from http://royalsocietypublishing.org/rstb/article-pdf/doi/10.1098/x.pdf\r\nby guest\r\n"
@@ -220,7 +220,7 @@ More numbers.
 
 
 def test_sections_of_pdf_text():
-    from reader import sections
+    from paperreader import sections
 
     titles = [(h.level, h.title, h.page) for h in sections.headings(PDF_TEXT)]
     assert titles == [(1, "Abstract", 1), (1, "1. Introduction", 1), (1, "2. Method", 1), (2, "2.1. Participants", 1),
@@ -234,7 +234,7 @@ def test_sections_of_pdf_text():
 
 
 def test_sections_of_jats_text():
-    from reader import sections
+    from paperreader import sections
 
     text = "# T\n\n---\n\n## Abstract\n\nShort.\n\n## Method\n\n### Participants\n\nKids.\n\n## References\n\n1. X."
     assert [(h.level, h.name) for h in sections.headings(text)] == [
@@ -263,7 +263,7 @@ def test_library_keys(tmp_path):
 
 
 def test_pending_list(tmp_path):
-    from reader.pending import Pending
+    from paperreader.pending import Pending
 
     pending = Pending(tmp_path / "pending.json")
     p = Paper(title="Paywalled", doi="10.1/x")
@@ -278,7 +278,7 @@ def test_pending_list(tmp_path):
 
 
 def test_bibtex_entries():
-    from reader.bibtex import bibtex
+    from paperreader.bibtex import bibtex
 
     p = Paper(title="Skype Me! Socially Contingent Interactions Help Toddlers Learn Language",
               authors=["Sarah Roseberry", "Kathy Hirsh-Pasek"], year=2014, venue="Child Development",

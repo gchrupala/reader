@@ -50,7 +50,7 @@ def _plausible_title(title: str) -> bool:
 
 def headings(text: str) -> list[Heading]:
     lines = text.split("\n")
-    # Skip the header that `reader get` writes ("# Title", authors, source, then "---").
+    # Skip the header that `paper get` writes ("# Title", authors, source, then "---").
     start = next((i + 1 for i, line in enumerate(lines[:40]) if line.strip() == "---"), 0)
     out: list[Heading] = []
     page = None

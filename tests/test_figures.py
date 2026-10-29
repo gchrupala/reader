@@ -6,11 +6,11 @@ import zlib
 import pytest
 from test_fetch import fetcher
 
-from reader.figures import caption_label, pdf_figures, png_bytes, render_page
-from reader.html_paper import html_to_markdown
-from reader.identifiers import parse
-from reader.library import Library
-from reader.models import Paper
+from paperreader.figures import caption_label, pdf_figures, png_bytes, render_page
+from paperreader.html_paper import html_to_markdown
+from paperreader.identifiers import parse
+from paperreader.library import Library
+from paperreader.models import Paper
 
 BODY = ("This paragraph is ordinary body text of the article, long enough to span the column and to run over "
         "several lines, as body text does in every paper that has figures and tables in it.")
@@ -87,7 +87,7 @@ def test_figures_and_tables_are_cropped():
 def test_pages_are_rendered_without_pymupdf(monkeypatch):
     pytest.importorskip("pymupdf")
     data = make_paper_pdf()
-    monkeypatch.setattr("reader.figures._have_pymupdf", lambda: False)
+    monkeypatch.setattr("paperreader.figures._have_pymupdf", lambda: False)
     figures = pdf_figures(data)
     assert [(f.page, f.kind, f.name) for f in figures] == [(2, "page", "page2.png")]
     assert figures[0].png == render_page(data, 2)

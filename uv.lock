@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -184,6 +184,42 @@ wheels = [
 ]
 
 [[package]]
+name = "paperreader"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "httpx" },
+    { name = "pypdfium2" },
+]
+
+[package.optional-dependencies]
+browser = [
+    { name = "playwright" },
+]
+figures = [
+    { name = "pymupdf" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.49" },
+    { name = "pymupdf", marker = "extra == 'figures'", specifier = ">=1.26" },
+    { name = "pypdfium2", specifier = ">=4.30" },
+]
+provides-extras = ["browser", "figures"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8" }]
+
+[[package]]
 name = "playwright"
 version = "1.63.0"
 source = { registry = "https://pypi.org/simple" }
@@ -295,42 +331,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa
 wheels = [
     { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
 ]
-
-[[package]]
-name = "reader"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "click" },
-    { name = "httpx" },
-    { name = "pypdfium2" },
-]
-
-[package.optional-dependencies]
-browser = [
-    { name = "playwright" },
-]
-figures = [
-    { name = "pymupdf" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.49" },
-    { name = "pymupdf", marker = "extra == 'figures'", specifier = ">=1.26" },
-    { name = "pypdfium2", specifier = ">=4.30" },
-]
-provides-extras = ["browser", "figures"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "typing-extensions"
