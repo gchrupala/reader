@@ -185,7 +185,7 @@ def test_pdf_text_cleaning():
            "a rate of 2.5 × 10\r\n−3\r\nper second\r\nAuthorized licensed use limited to: Example University. "
            "Downloaded on October 10,2026 at 11:48:02 UTC from IEEE Xplore. Restrictions apply. ")
     assert _clean(raw) == "it showed effects [F(2, 42) = 17.37, p = 3.2e−6, η2 = .453] and more\n" \
-                          "a rate of 2.5 × 10^−3\nper second"
+                          "a rate of 2.5 × 10^{−3}\nper second"
     assert _is_hal_cover("HAL Id: hal-03080098\nhttps://hal.science/hal-03080098v1\nSubmitted on 17 Dec 2020")
     assert not _is_hal_cover("Does infant-directed speech help phonetic learning?")
 

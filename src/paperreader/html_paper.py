@@ -12,6 +12,8 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 from .figures import FigureSpec, caption_label, label_of, marker
+from .markdown import script, span
+from .markdown import table as markdown_table
 
 VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 SKIP = {"script", "style", "nav", "header", "footer", "button", "svg"}
@@ -105,10 +107,8 @@ class _Converter:
             return f"*{text.strip()}*"
         if tag in ("b", "strong") or "ltx_font_bold" in cls:
             return f"**{text.strip()}**"
-        if tag == "sup":
-            return f"^{text.strip()}"
-        if tag == "sub":
-            return f"_{text.strip()}"
+        if tag in ("sup", "sub"):
+            return script("^" if tag == "sup" else "_", _squash(text))
         return text
 
     # -- blocks ---------------------------------------------------------------------------
@@ -163,20 +163,12 @@ class _Converter:
             self.out.append("$$" + " \\\\ ".join(maths) + "$$" + (" " + " ".join(tags) if tags else ""))
 
     def table(self, node: Node) -> str:
-        rows = []
-        for tr in (n for n in node.iter() if n.tag == "tr"):
-            cells = []
-            for cell in (c for c in tr.children if isinstance(c, Node) and c.tag in ("td", "th")):
-                cells.append(_squash(self.inline(cell)).replace("|", "\\|"))
-                cells += [""] * (int(cell.attrs.get("colspan", "1") or 1) - 1)
-            if any(cells):
-                rows.append(cells)
-        if not rows:
-            return ""
-        width = max(len(r) for r in rows)
-        lines = ["| " + " | ".join(r + [""] * (width - len(r))) + " |" for r in rows]
-        lines.insert(1, "|" + " --- |" * width)
-        return "\n".join(lines)
+        trs = [n for n in node.iter() if n.tag == "tr"]
+        rows = [[(_squash(self.inline(c)), span(c.attrs.get("rowspan")), span(c.attrs.get("colspan")))
+                 for c in tr.children if isinstance(c, Node) and c.tag in ("td", "th")] for tr in trs]
+        # LaTeXML marks a header section only sometimes; otherwise markdown_table guesses it.
+        head = sum(any(p.tag == "thead" or "ltx_thead" in p.classes for p in _ancestors(tr, node)) for tr in trs)
+        return markdown_table(rows, head or None)
 
     def figure(self, node: Node) -> None:
         caption_node = next((c for c in node.children if isinstance(c, Node) and c.tag == "figcaption"), None)

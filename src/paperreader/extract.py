@@ -6,6 +6,8 @@ import re
 import xml.etree.ElementTree as ET
 
 from .figures import FigureSpec, caption_label, label_of, marker
+from .markdown import script, span
+from .markdown import table as markdown_table
 
 XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
 
@@ -26,7 +28,7 @@ HAL_COVER_MARKS = ("HAL is a multi-disciplinary open access archive", "L’archi
 
 def _join_exponent(m: re.Match) -> str:
     base, exponent = m.group(1), m.group(2)
-    return f"{base}{exponent}" if base.endswith("e") else f"{base}^{exponent}"
+    return f"{base}{exponent}" if base.endswith("e") else base + script("^", exponent)
 
 
 def _clean(text: str) -> str:
@@ -90,7 +92,8 @@ def _local(tag) -> str:
     return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
 
 
-def _inline(el: ET.Element) -> str:
+def _inline(el: ET.Element, scripts: bool = True) -> str:
+    """Text of an element. Superscripts and subscripts are marked (10^{-4}, K_δ) unless `scripts` is false."""
     out = [el.text or ""]
     for child in el:
         name = _local(child.tag)
@@ -99,8 +102,11 @@ def _inline(el: ET.Element) -> str:
         elif name == "math" or name == "inline-formula" or name == "disp-formula":
             tex = next((t for t in child.iter() if _local(t.tag) == "tex-math"), None)
             out.append(f"${(tex.text or '').strip()}$" if tex is not None else " ".join(child.itertext()))
+        elif name in ("sup", "sub") and scripts:
+            if text := _squash(_inline(child)):
+                out.append(script("^" if name == "sup" else "_", text))
         else:
-            out.append(_inline(child))
+            out.append(_inline(child, scripts))
         out.append(child.tail or "")
     return "".join(out)
 
@@ -117,15 +123,11 @@ def _caption(el: ET.Element, kind: str) -> str:
 
 
 def _table(el: ET.Element) -> str:
-    rows = []
-    for tr in el.iter():
-        if _local(tr.tag) == "tr":
-            cells = [_squash(_inline(c)).replace("|", "\\|") for c in tr if _local(c.tag) in ("td", "th")]
-            rows.append("| " + " | ".join(cells) + " |")
-    if rows:
-        width = rows[0].count(" | ") + 1
-        rows.insert(1, "|" + " --- |" * width)
-    return "\n".join(rows)
+    head = {id(tr) for part in el.iter() if _local(part.tag) == "thead" for tr in part.iter() if _local(tr.tag) == "tr"}
+    rows = [[(_squash(_inline(c)), span(c.get("rowspan")), span(c.get("colspan")))
+             for c in tr if _local(c.tag) in ("td", "th")]
+            for tr in el.iter() if _local(tr.tag) == "tr"]
+    return markdown_table(rows, len(head) or None)
 
 
 def _figure(el: ET.Element, kind: str, out: list[str], figs: list[FigureSpec]) -> None:
@@ -204,7 +206,7 @@ def jats_to_text(xml: bytes) -> tuple[str, dict, list[FigureSpec]]:
         root = next((c for c in root if _local(c.tag) == "article"), root)
     meta: dict = {}
     if (t := _find(root, "article-meta", "article-title")) is not None:
-        meta["title"] = _squash(_inline(t))
+        meta["title"] = _squash(_inline(t, scripts=False))  # plain: it goes into the key and the download check
     authors = []
     if (am := _find(root, "article-meta")) is not None:
         for contrib in am.iter():
