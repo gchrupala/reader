@@ -97,7 +97,7 @@ class Found:
 
 
 MAX_IMAGE_DOWNLOADS = 40  # figure images fetched one by one (arXiv HTML without a PDF), per paper
-IMAGE_TYPES = ("image/png", "image/jpeg", "image/gif")
+IMAGE_TYPES = ("image/png", "image/jpeg", "image/gif", "image/webp")
 
 
 @dataclass
@@ -632,7 +632,7 @@ class Fetcher:
                         images.append((PurePosixPath(urlsplit(src).path).name, img))
                 elif paper.pmcid:
                     if pmc_images is None:
-                        pmc_images = self._pmc_figures(paper.pmcid) or self._pmc_page_figures(paper.pmcid, specs)
+                        pmc_images = self._pmc_figures(paper.pmcid) or self._pmc_page_figures(paper, specs)
                     if (hit := pmc_images.get(PurePosixPath(src).stem)) is not None:
                         images.append(hit)
             lines = []
@@ -659,7 +659,7 @@ class Fetcher:
             return None
         return r.content if r.ok and r.content_type in IMAGE_TYPES else None
 
-    def _pmc_page_figures(self, pmcid: str, specs: list[FigureSpec]) -> dict[str, tuple[str, bytes]]:
+    def _pmc_page_figures(self, paper: Paper, specs: list[FigureSpec]) -> dict[str, tuple[str, bytes]]:
         """Figure images of a PMC author manuscript: its article page, in the browser, links them on NCBI's CDN.
 
         The page sits behind a proof-of-work check that the browser solves by itself; the CDN serves
@@ -668,16 +668,17 @@ class Fetcher:
         wanted = {PurePosixPath(src).stem for spec in specs for src in spec.sources if not re.match(r"https?://", src)}
         if not (wanted and self.use_browser) or self._browser_error:
             return {}
-        page = Candidate(f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/", "landing", "pmc-figures", via="browser")
+        page = Candidate(f"https://pmc.ncbi.nlm.nih.gov/articles/{paper.pmcid}/", "landing", "pmc-figures",
+                         via="browser")
         try:
-            r = self._fetch(page)
+            r = self._fetch(_Run(paper), page)
         except BrowserUnavailable as e:
             self._browser_error = str(e)
             return {}
         except Exception as e:  # browser errors (timeouts, crashed pages)
             self.log(f"  {'failed':8} {'browser':7} {'figures':16} {page.url}  ({type(e).__name__})")
             return {}
-        links = re.findall(r'"(https://cdn\.ncbi\.nlm\.nih\.gov/pmc/blobs/[^"]+?\.(?:jpe?g|png|gif))"', r.text)
+        links = re.findall(r'"(https://cdn\.ncbi\.nlm\.nih\.gov/pmc/blobs/[^"]+?\.(?:jpe?g|png|gif|webp))"', r.text)
         self.log(f"  {'ok' if links else 'failed':8} {'browser':7} {'figures':16} {page.url}")
         out: dict[str, tuple[str, bytes]] = {}
         for url in dict.fromkeys(links):
