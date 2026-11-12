@@ -39,6 +39,8 @@ Anthology id, an OpenReview or OSF id, a URL, an exact title, or a library key. 
 
 - For a long paper, read `--sections` first, then the sections you need, rather than the whole text.
 - Figures and tables are image files: open them with the Read tool to look at them.
+- Superscripts and subscripts are written `^{...}` and `_{...}` (`10^{−4}`, `K_δ`).
+- Check equations and tables before you rely on them (see below).
 - Use `-q` with `get` to skip the per-attempt log when it is not needed.
 - If `get` fails, report its reason and hints to the user. Do not look for other copies on the web
   or retry in a loop: the tool already tried every route it knows, and repeated requests can get
@@ -48,6 +50,25 @@ Anthology id, an OpenReview or OSF id, a URL, an exact title, or a library key. 
   machine, or `paper add FILE [ID]` for a PDF they downloaded themselves.
 - `get` may open a visible browser window for a human check and wait up to a few minutes for the
   user; tell them when that may happen. In a session without a display, pass `--no-browser`.
+
+## Equations and tables
+
+How far you can trust them depends on what the text was made from. Before you quote a number from a
+table or state a formula, check it as described here, and tell the user when you could not.
+
+- **Text with `<!-- page N -->` markers comes from a PDF.** Its equations and tables are unreliable:
+  fractions, exponents, subscripts and table columns are lost without any sign of it. `10^{2i/d}` can
+  read `102i/d` and `1.0·10^{20}` can read `1.0 · 1020`; in a table, empty cells vanish, so a value may
+  seem to belong to the wrong column. Check tables against their image, linked after the page's text.
+  For an equation, open the PDF (`<key>.pdf`, next to the text) at that page with the Read tool.
+- **Text without page markers comes from arXiv's HTML or from JATS XML** (PubMed Central, bioRxiv).
+  Formulas in `$...$` are the LaTeX of the source and can be trusted. Tables are Markdown: a cell
+  spanning several rows is repeated in each, and a header of several rows is merged into one
+  (`BLEU EN-DE`).
+- **In JATS text, a formula without `$` is flattened MathML** (the publisher gave no LaTeX), for example
+  `d T d t = - β T V` for dT/dt = −βTV. Its fractions, exponents and subscripts are lost. If the exact
+  form matters, look at the formula on the article page (PMC: `https://pmc.ncbi.nlm.nih.gov/articles/<PMCID>/`)
+  or in the PDF, if the library has one (`<key>.pdf`).
 
 ## In a cloud session
 

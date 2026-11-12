@@ -44,6 +44,7 @@ runs the real papers from `docs/literature-review-use-case.md` (no browser, your
 | `extract.py` | PDF to text (pypdfium2; drops HAL cover pages and watermarks, joins exponents) and JATS to Markdown |
 | `figures.py` | figure and table images: caption-anchored crops (PyMuPDF), whole-page renders (pypdfium2), markers |
 | `html_paper.py` | arXiv's LaTeXML HTML to Markdown (headings, `$LaTeX$`, tables, figure markers) |
+| `markdown.py` | shared by both converters: tables with row and column spans, `^{...}`/`_{...}` scripts |
 | `sections.py` | headings of the text (Markdown, or guessed for PDFs), one section, text without references |
 | `library.py` | storage, readable or user-chosen keys (`vaswani2017-attention-all-you-need`), lookup by any id or key |
 | `pending.py` | papers that need a person, kept in the library as `pending.json` |
@@ -110,7 +111,7 @@ after `paper login`, with the saved session and a visible window.
 Figures and tables were checked by eye on about 40 papers in the user's library (PNAS, IEEE, Royal
 Society, Cognitive Science, CVPR-style arXiv, APA manuscripts, PMC author manuscripts): crops are
 complete; a few pages with unusual captions are rendered whole.
-There are 150 unit tests, all passing, and 24 network tests.
+There are 156 unit tests, all passing, and 24 network tests.
 
 The handling of human checks (issue #4) was tested with a fake browser in the unit tests, and with real
 headless Chromium against a local server (check not completed, mark remembered by the next process,
@@ -245,6 +246,15 @@ Not verified:
   zip (not checked whether the zips contain any). The page is opened within the paper's run, so it shares
   the paper's `browser.paper_wait`.
 - IEEE PDFs fetched through the proxy carry "Authorized licensed use limited to: ..." on every page.
+- Tables lost their columns silently (12 November 2026): a cell spanning rows pushed the next row's values one
+  column left (PMC11706453, Table 1), and a second header row slid under the wrong labels (arXiv 1706.03762,
+  Table 2). `markdown.table` lays spans out on a grid. LaTeXML often has no `<thead>`: its header rows show only
+  as a first-row cell spanning them ("Model"), which is how the header is guessed.
+- PLoS JATS (two PLoS Computational Biology articles, 85 formulas) has MathML and no `<tex-math>`; it is flattened
+  to symbols (`d T d t = - β T V`). `<sup>`/`<sub>` outside formulas were dropped too ("×10<sup>6</sup>" read
+  "×106"); they are now `^{...}`/`_{...}`, except in the title, which feeds the key and the download check.
+  PDF text loses equations and table columns (`pos/100002i/dmodel`, `1.0 · 1020`); SKILL.md tells agents to check
+  against the table images or the PDF.
 
 ## Next steps
 
@@ -253,3 +263,5 @@ Not verified:
   its items are implemented. Not verified: bioRxiv full text through the browser after a Cloudflare 1015
   (from the user's network plain HTTP got through), and section guessing on more PDF layouts.
 - Fetching arXiv LaTeX source for maths-heavy papers.
+- MathML to LaTeX for JATS without `<tex-math>` (fractions, scripts, roots, sums, matrices; mark what is unknown).
+- In PDF text, replace the text of a cropped table with a pointer to its image; crop display equations too.

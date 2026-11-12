@@ -122,7 +122,7 @@ def test_arxiv_html_to_markdown():
     assert text.startswith("## Abstract\n\nWe model $x^{2}$.\n\n## 1 Method\n\nIt is *new* (footnote: Really.).")
     assert "$$E=mc^{2}$$ (1)" in text
     assert "**Figure 1:** A plot.\n\n<!-- figure 0 -->" in text
-    table = "| model | score |  |\n| --- | --- | --- |\n| ours | 1 | 2 |"
+    table = "| model | score | score |\n| --- | --- | --- |\n| ours | 1 | 2 |"  # a header cell names each column
     assert f"**Table 1:** Scores.\n\n{table}\n\n<!-- figure 1 -->" in text
     assert text.endswith("## References\n\n- [1] Smith. *Old work*. 1999.")
     assert "A. Author" not in text and "Report an issue" not in text
