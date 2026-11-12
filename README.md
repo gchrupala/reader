@@ -45,8 +45,8 @@ The best source for reading is used where there is one:
   papers): real section headings, maths as LaTeX (`$\mathrm{softmax}(QK^T)$`), and tables
   as Markdown tables. The PDF is downloaded too, for the figures.
 - **PubMed Central and bioRxiv** papers come as JATS XML: headings, tables, captions.
-  Maths is LaTeX where the publisher includes it; otherwise (MathML only) it is flattened
-  to plain symbols, without fractions, exponents or subscripts.
+  Maths is LaTeX: the publisher's where it includes some, otherwise its MathML converted
+  to LaTeX (with [mathml-to-latex](https://github.com/asnunes/py-mathml-to-latex)).
 - **Everything else** is text from the PDF, page by page, cleaned of cover pages and
   watermarks. Its headings are guessed for `paper read --sections`. Equations and tables
   in PDF text are unreliable: exponents, fractions and table columns are lost. The table

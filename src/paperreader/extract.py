@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from .figures import FigureSpec, caption_label, label_of, marker
 from .markdown import script, span
 from .markdown import table as markdown_table
+from .mathml import tex_math, to_latex
 
 XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
 
@@ -92,16 +93,18 @@ def _local(tag) -> str:
     return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
 
 
-def _inline(el: ET.Element, scripts: bool = True) -> str:
-    """Text of an element. Superscripts and subscripts are marked (10^{-4}, K_δ) unless `scripts` is false."""
+def _inline(el: ET.Element, scripts: bool = True, skip: tuple[str, ...] = ()) -> str:
+    """Text of an element. Superscripts and subscripts are marked (10^{-4}, K_δ) unless `scripts` is false.
+
+    Children named in `skip` are left out (a paragraph's lists and display formulas follow it as blocks).
+    """
     out = [el.text or ""]
     for child in el:
         name = _local(child.tag)
-        if name in ("fig", "table-wrap", "fn", "supplementary-material"):
-            pass  # rendered as blocks elsewhere
-        elif name == "math" or name == "inline-formula" or name == "disp-formula":
-            tex = next((t for t in child.iter() if _local(t.tag) == "tex-math"), None)
-            out.append(f"${(tex.text or '').strip()}$" if tex is not None else " ".join(child.itertext()))
+        if name in ("fig", "table-wrap", "fn", "supplementary-material") or name in skip:
+            out.append(" ")  # rendered as blocks elsewhere; keeps the words around it apart
+        elif name in ("math", "inline-formula", "disp-formula"):
+            out.append(_formula(child, display=False))
         elif name in ("sup", "sub") and scripts:
             if text := _squash(_inline(child)):
                 out.append(script("^" if name == "sup" else "_", text))
@@ -157,7 +160,7 @@ def _blocks(el: ET.Element, level: int, out: list[str], figs: list[FigureSpec]) 
         elif name in ("title", "label"):
             continue
         elif name == "p":
-            out.append(_squash(_inline(child)))
+            out.append(_squash(_inline(child, skip=NESTED_BLOCKS)))
             _blocks_nested(child, level, out, figs)
         elif name == "fig":
             _figure(child, "figure", out, figs)
@@ -167,20 +170,36 @@ def _blocks(el: ET.Element, level: int, out: list[str], figs: list[FigureSpec]) 
             items = [i for i in child if _local(i.tag) == "list-item"]
             out.append("\n".join("- " + _squash(_inline(i)) for i in items))
         elif name == "disp-formula":
-            out.append(_inline_formula(child))
+            out.append(_formula(child, display=True))
         else:
             _blocks(child, level, out, figs)
 
 
-def _inline_formula(el: ET.Element) -> str:
-    tex = next((t for t in el.iter() if _local(t.tag) == "tex-math"), None)
-    return f"$${(tex.text or '').strip()}$$" if tex is not None else _squash(" ".join(el.itertext()))
+def _formula(el: ET.Element, display: bool) -> str:
+    """A formula as LaTeX: the publisher's <tex-math>, or its MathML converted; its number after it.
+
+    Only when neither works is it flattened to text, without `$`: that tells the reader that its
+    fractions, exponents and subscripts are lost.
+    """
+    label = _squash("".join(t.text or "" for t in el if _local(t.tag) == "label"))
+    tex = next((tex_math("".join(t.itertext())) for t in el.iter() if _local(t.tag) == "tex-math"), None)
+    if not tex and (math := next((t for t in el.iter() if _local(t.tag) == "math"), None)) is not None:
+        tex = to_latex(math)
+    if tex:
+        text = f"$${tex}$$" if display else f"${tex}$"
+    else:
+        parts = [" ".join(c.itertext()) + " " + (c.tail or "") for c in el if _local(c.tag) != "label"]
+        text = _squash(" ".join([el.text or "", *parts]))
+    return f"{text} {label}" if label else text
+
+
+NESTED_BLOCKS = ("fig", "table-wrap", "list", "disp-formula")
 
 
 def _blocks_nested(p: ET.Element, level: int, out: list[str], figs: list[FigureSpec]) -> None:
-    """Figures and tables are often nested inside paragraphs."""
+    """Figures, tables, lists and display formulas are often nested inside paragraphs."""
     for child in p:
-        if _local(child.tag) in ("fig", "table-wrap", "list", "disp-formula"):
+        if _local(child.tag) in NESTED_BLOCKS:
             _blocks(_wrap(child), level, out, figs)
 
 

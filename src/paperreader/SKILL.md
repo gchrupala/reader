@@ -62,13 +62,14 @@ table or state a formula, check it as described here, and tell the user when you
   seem to belong to the wrong column. Check tables against their image, linked after the page's text.
   For an equation, open the PDF (`<key>.pdf`, next to the text) at that page with the Read tool.
 - **Text without page markers comes from arXiv's HTML or from JATS XML** (PubMed Central, bioRxiv).
-  Formulas in `$...$` are the LaTeX of the source and can be trusted. Tables are Markdown: a cell
-  spanning several rows is repeated in each, and a header of several rows is merged into one
-  (`BLEU EN-DE`).
-- **In JATS text, a formula without `$` is flattened MathML** (the publisher gave no LaTeX), for example
-  `d T d t = - β T V` for dT/dt = −βTV. Its fractions, exponents and subscripts are lost. If the exact
-  form matters, look at the formula on the article page (PMC: `https://pmc.ncbi.nlm.nih.gov/articles/<PMCID>/`)
-  or in the PDF, if the library has one (`<key>.pdf`).
+  Formulas in `$...$` are LaTeX: arXiv's source, the publisher's LaTeX, or the publisher's MathML
+  converted, with fractions, exponents, subscripts, roots, sums and matrices kept. Display formulas
+  are followed by their number, as in `$$...$$ (3)`. Tables are Markdown: a cell spanning several
+  rows is repeated in each, and a header of several rows is merged into one (`BLEU EN-DE`).
+- **In JATS text, a formula without `$` is MathML that could not be converted** (malformed), flattened
+  to symbols, for example `d T d t = - β T V` for dT/dt = −βTV. Its fractions, exponents and subscripts
+  are lost. If the exact form matters, look at the formula on the article page (PMC:
+  `https://pmc.ncbi.nlm.nih.gov/articles/<PMCID>/`) or in the PDF, if the library has one (`<key>.pdf`).
 
 ## In a cloud session
 

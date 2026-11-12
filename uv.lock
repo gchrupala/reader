@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11"
 
 [[package]]
@@ -175,6 +175,15 @@ wheels = [
 ]
 
 [[package]]
+name = "mathml-to-latex"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ba/7a/ca7097fea2caccf90c7c2755c9bc3996271902742e4fe40453b833b192ad/mathml_to_latex-1.0.0.tar.gz", hash = "sha256:ba6a438526684940572d1875b4d5f2d6cb3bea52943830307d08a9fc662e4f69", size = 29382, upload-time = "2024-11-09T13:13:25.621Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/1a/20e71ad3f6a7fb4938ed03a7fbba0a42fe1e0115c5add83fcb292403ac86/mathml_to_latex-1.0.0-py3-none-any.whl", hash = "sha256:a85ec2434da774be019ed5ea32494616baabf48471b054e3567a7700ae759572", size = 32233, upload-time = "2024-11-09T13:13:24.512Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -190,6 +199,7 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "httpx" },
+    { name = "mathml-to-latex" },
     { name = "pypdfium2" },
 ]
 
@@ -210,6 +220,7 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "mathml-to-latex", specifier = ">=1.0,<1.1" },
     { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.49" },
     { name = "pymupdf", marker = "extra == 'figures'", specifier = ">=1.26" },
     { name = "pypdfium2", specifier = ">=4.30" },
