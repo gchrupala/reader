@@ -170,7 +170,7 @@ class Fetcher:
         self._arxiv_year(run, found)
         self._lookup(run, sources.crossref)  # after the arXiv year: a published article's issue year wins
         found.companion = self._companion(run, found)
-        return self._store(paper, found, key)
+        return self._store(run, found, key)
 
     def rebuild(self, rec: Record) -> Record:
         """Extract text and figures again from the stored document (after an improvement, say)."""
@@ -179,13 +179,14 @@ class Fetcher:
         companion = rec.files["pdf"].read_bytes() if fmt != "pdf" and "pdf" in rec.files else None
         cand = Candidate(rec.source.get("url") or "", fmt, rec.source.get("source") or "library",
                          via=rec.source.get("via") or "direct", version=rec.source.get("version"))
-        return self._store(rec.paper, Found(content, fmt, cand, cand.url, companion), rec.key)
+        return self._store(_Run(rec.paper), Found(content, fmt, cand, cand.url, companion), rec.key)
 
     def add(self, ident: Identifier, content: bytes, origin: str, key: str | None = None) -> Record:
         """Store a PDF (or JATS XML) the user downloaded by hand, with metadata as `get` collects it."""
         paper = self.describe(ident)
         fmt = "pdf" if is_pdf(content) else "xml"
-        return self._store(paper, Found(content, fmt, Candidate(origin, fmt, "user", via="by hand"), origin), key)
+        return self._store(_Run(paper), Found(content, fmt, Candidate(origin, fmt, "user", via="by hand"), origin),
+                           key)
 
     def describe(self, ident: Identifier) -> Paper:
         """Metadata only, as `get` would collect it, without downloading the paper."""
@@ -567,7 +568,8 @@ class Fetcher:
         self.log(f"  {'ok' if ok else 'failed':8} {'direct':7} {'figures':16} {url}{detail}")
         return r.content if ok else None
 
-    def _store(self, paper: Paper, found: Found, key: str | None = None) -> Record:
+    def _store(self, run: _Run, found: Found, key: str | None = None) -> Record:
+        paper = run.paper
         files: dict[str, bytes] = {}
         if found.fmt == "pdf":
             pages = pdf_pages(found.content)
@@ -584,7 +586,7 @@ class Fetcher:
             else:
                 text, meta, specs = html_to_markdown(found.content.decode("utf-8", "replace"), found.url)
             paper.update(**meta)
-            text, files = self._place_figures(paper, text, specs, found.companion)
+            text, files = self._place_figures(run, text, specs, found.companion)
         if not paper.title and found.url:
             paper.update(title=urlsplit(found.url).path.rsplit("/", 1)[-1] or None)
         source = {
@@ -600,7 +602,7 @@ class Fetcher:
 
     # -- figures of XML and HTML papers -----------------------------------------------------
 
-    def _place_figures(self, paper: Paper, text: str, specs: list[FigureSpec],
+    def _place_figures(self, run: _Run, text: str, specs: list[FigureSpec],
                        companion: bytes | None) -> tuple[str, dict[str, bytes]]:
         """Put each figure's image where its marker is.
 
@@ -608,6 +610,7 @@ class Fetcher:
         PMC articles), or from the image URLs of arXiv's HTML. When there is none, the text says where
         a person can see the figure.
         """
+        paper = run.paper
         crops = pdf_figures(companion) if companion else []
         by_label = {c.label: c for c in reversed(crops) if c.label}
         files: dict[str, bytes] = {}
@@ -632,7 +635,7 @@ class Fetcher:
                         images.append((PurePosixPath(urlsplit(src).path).name, img))
                 elif paper.pmcid:
                     if pmc_images is None:
-                        pmc_images = self._pmc_figures(paper.pmcid) or self._pmc_page_figures(paper, specs)
+                        pmc_images = self._pmc_figures(paper.pmcid) or self._pmc_page_figures(run, specs)
                     if (hit := pmc_images.get(PurePosixPath(src).stem)) is not None:
                         images.append(hit)
             lines = []
@@ -659,19 +662,20 @@ class Fetcher:
             return None
         return r.content if r.ok and r.content_type in IMAGE_TYPES else None
 
-    def _pmc_page_figures(self, paper: Paper, specs: list[FigureSpec]) -> dict[str, tuple[str, bytes]]:
+    def _pmc_page_figures(self, run: _Run, specs: list[FigureSpec]) -> dict[str, tuple[str, bytes]]:
         """Figure images of a PMC author manuscript: its article page, in the browser, links them on NCBI's CDN.
 
         The page sits behind a proof-of-work check that the browser solves by itself; the CDN serves
-        the images to plain HTTP.
+        the images to plain HTTP. The page belongs to the paper's run: time spent waiting for a person
+        while fetching the text counts against the paper's `browser.paper_wait`.
         """
         wanted = {PurePosixPath(src).stem for spec in specs for src in spec.sources if not re.match(r"https?://", src)}
         if not (wanted and self.use_browser) or self._browser_error:
             return {}
-        page = Candidate(f"https://pmc.ncbi.nlm.nih.gov/articles/{paper.pmcid}/", "landing", "pmc-figures",
+        page = Candidate(f"https://pmc.ncbi.nlm.nih.gov/articles/{run.paper.pmcid}/", "landing", "pmc-figures",
                          via="browser")
         try:
-            r = self._fetch(_Run(paper), page)
+            r = self._fetch(run, page)
         except BrowserUnavailable as e:
             self._browser_error = str(e)
             return {}
@@ -703,9 +707,9 @@ class Fetcher:
             for info in z.infolist():
                 name = PurePosixPath(info.filename).name
                 stem, ext = PurePosixPath(name).stem, PurePosixPath(name).suffix.lower()
-                if ext not in (".jpg", ".jpeg", ".png", ".gif"):
+                if ext not in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
                     continue
-                # Prefer the large JPEG or PNG over the GIF thumbnail.
+                # Prefer the large JPEG, PNG or WebP over the GIF thumbnail.
                 if stem not in out or (ext != ".gif" and info.file_size > len(out[stem][1])):
                     out[stem] = (name, z.read(info))
         return out
