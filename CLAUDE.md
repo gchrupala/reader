@@ -45,6 +45,7 @@ runs the real papers from `docs/literature-review-use-case.md` (no browser, your
 | `figures.py` | figure and table images: caption-anchored crops (PyMuPDF), whole-page renders (pypdfium2), markers |
 | `html_paper.py` | arXiv's LaTeXML HTML to Markdown (headings, `$LaTeX$`, tables, figure markers) |
 | `markdown.py` | shared by both converters: tables with row and column spans, `^{...}`/`_{...}` scripts |
+| `mathml.py` | JATS formulas as LaTeX: the publisher's `<tex-math>`, or MathML converted (mathml-to-latex) |
 | `sections.py` | headings of the text (Markdown, or guessed for PDFs), one section, text without references |
 | `library.py` | storage, readable or user-chosen keys (`vaswani2017-attention-all-you-need`), lookup by any id or key |
 | `pending.py` | papers that need a person, kept in the library as `pending.json` |
@@ -111,7 +112,7 @@ after `paper login`, with the saved session and a visible window.
 Figures and tables were checked by eye on about 40 papers in the user's library (PNAS, IEEE, Royal
 Society, Cognitive Science, CVPR-style arXiv, APA manuscripts, PMC author manuscripts): crops are
 complete; a few pages with unusual captions are rendered whole.
-There are 156 unit tests, all passing, and 24 network tests.
+There are 162 unit tests, all passing, and 24 network tests.
 
 The handling of human checks (issue #4) was tested with a fake browser in the unit tests, and with real
 headless Chromium against a local server (check not completed, mark remembered by the next process,
@@ -250,11 +251,20 @@ Not verified:
   column left (PMC11706453, Table 1), and a second header row slid under the wrong labels (arXiv 1706.03762,
   Table 2). `markdown.table` lays spans out on a grid. LaTeXML often has no `<thead>`: its header rows show only
   as a first-row cell spanning them ("Model"), which is how the header is guessed.
-- PLoS JATS (two PLoS Computational Biology articles, 85 formulas) has MathML and no `<tex-math>`; it is flattened
-  to symbols (`d T d t = - β T V`). `<sup>`/`<sub>` outside formulas were dropped too ("×10<sup>6</sup>" read
-  "×106"); they are now `^{...}`/`_{...}`, except in the title, which feeds the key and the download check.
-  PDF text loses equations and table columns (`pos/100002i/dmodel`, `1.0 · 1020`); SKILL.md tells agents to check
-  against the table images or the PDF.
+- `<sup>`/`<sub>` outside formulas were dropped ("×10<sup>6</sup>" read "×106"); they are now `^{...}`/`_{...}`,
+  except in the title, which feeds the key and the download check. PDF text loses equations and table columns
+  (`pos/100002i/dmodel`, `1.0 · 1020`); SKILL.md tells agents to check against the table images or the PDF.
+- JATS maths (12 November 2026, one 2024 article from each of 10 journals plus 2 PLoS): 8 of 10 journals give
+  MathML only, which was flattened to symbols (`d T d t = - β T V`). `mathml.py` converts it with mathml-to-latex
+  1.0 (MIT, pure Python): all 4150 formulas of the sample converted, and where Nature Communications gives its
+  LaTeX too, 34 of 35 agree in letters, digits and the counts of fractions, roots and scripts (the other is
+  `exp` against `\exp`). That library added parentheses around a script's base of several tokens ((TΔ)′,
+  ((x+y))²), wrote prescripts as a literal underscore (`\_{}^{Δ}H`), turned `*` into `\star` and `{` into
+  `\left{`, so `mathml.py` replaces its script converters and tidies the output; it subclasses the library's
+  internals, hence the pin to 1.0.x. `mathml2latex` (2019) changed a denominator silently; pandoc's converter
+  is 155 MB. Springer Nature's `<tex-math>` holds a whole LaTeX document (`\documentclass` ... `\begin{document}
+  $$...$$`), which went into the text as it was. A display formula or list inside a `<p>` was written twice,
+  inline and as a block after it (200 in 5 of the 12 articles).
 
 ## Next steps
 
@@ -263,5 +273,4 @@ Not verified:
   its items are implemented. Not verified: bioRxiv full text through the browser after a Cloudflare 1015
   (from the user's network plain HTTP got through), and section guessing on more PDF layouts.
 - Fetching arXiv LaTeX source for maths-heavy papers.
-- MathML to LaTeX for JATS without `<tex-math>` (fractions, scripts, roots, sums, matrices; mark what is unknown).
 - In PDF text, replace the text of a cropped table with a pointer to its image; crop display equations too.
