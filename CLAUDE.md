@@ -110,7 +110,7 @@ after `paper login`, with the saved session and a visible window.
 Figures and tables were checked by eye on about 40 papers in the user's library (PNAS, IEEE, Royal
 Society, Cognitive Science, CVPR-style arXiv, APA manuscripts, PMC author manuscripts): crops are
 complete; a few pages with unusual captions are rendered whole.
-There are 145 unit tests, all passing, and 24 network tests.
+There are 150 unit tests, all passing, and 24 network tests.
 
 The handling of human checks (issue #4) was tested with a fake browser in the unit tests, and with real
 headless Chromium against a local server (check not completed, mark remembered by the next process,
@@ -241,6 +241,9 @@ Not verified:
 - PMC's article pages show a proof-of-work check (`__identity_pow`) that a headless browser solves by
   itself when it waits; the images are on cdn.ncbi.nlm.nih.gov, open to plain HTTP. Author manuscripts
   in PMC's open-data bucket and Europe PMC's `supplementaryFiles` have no images (license).
+  By November 2026 the article pages linked figures as `.webp`; WebP is accepted there and in Europe PMC's
+  zip (not checked whether the zips contain any). The page is opened within the paper's run, so it shares
+  the paper's `browser.paper_wait`.
 - IEEE PDFs fetched through the proxy carry "Authorized licensed use limited to: ..." on every page.
 
 ## Next steps

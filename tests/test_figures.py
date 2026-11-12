@@ -167,6 +167,22 @@ def test_pmc_figures_from_europe_pmc(config, client, router):
     assert (rec.files["figures"] / "open-g001.jpg").read_bytes().startswith(b"\xff\xd8")
 
 
+def test_pmc_figures_from_europe_pmc_in_webp(config, client, router):
+    router.add("https://www.ebi.ac.uk/europepmc/webservices/rest/search", json_body={"resultList": {"result": [
+        {"title": "Open data", "pubYear": "2024", "pmcid": "PMC9"}]}})
+    router.add("https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9/fullTextXML",
+               headers={"content-type": "application/xml"}, content=JATS_WITH_FIGURE)
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as z:
+        z.writestr("open-g001.gif", b"GIF89a-thumbnail")
+        z.writestr("open-g001.webp", b"RIFF----WEBP-a-larger-image")
+    router.add("https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9/supplementaryFiles",
+               headers={"content-type": "application/zip"}, content=archive.getvalue())
+    rec = fetcher(config, client).get(parse("PMC9"))
+    assert f"![Figure 1: Bars.]({rec.key}.figures/open-g001.webp)" in rec.text_path.read_text()
+    assert (rec.files["figures"] / "open-g001.webp").read_bytes().startswith(b"RIFF")
+
+
 def test_author_manuscript_figures_say_where_to_look(config, client, router):
     router.add("https://www.ebi.ac.uk/europepmc/webservices/rest/search", json_body={"resultList": {"result": [
         {"title": "Open data", "pubYear": "2024", "pmcid": "PMC9"}]}})
@@ -206,6 +222,40 @@ def test_author_manuscript_figures_from_the_pmc_page(config, client, router, ext
     assert f._browser.urls == ["https://pmc.ncbi.nlm.nih.gov/articles/PMC9/"]
     assert f"![Figure 1: Bars.]({rec.key}.figures/open-g001.{ext})" in rec.text_path.read_text()
     assert (rec.files["figures"] / f"open-g001.{ext}").read_bytes() == b"the-image"
+
+
+@pytest.mark.parametrize("wait_used_up", [False, True])
+def test_the_pmc_page_shares_the_wait_of_the_paper(config, client, monkeypatch, wait_used_up):
+    """A check on the article page gets a window only while the paper may still wait for a person."""
+    import httpx
+
+    from paperreader import fetch as fetch_mod
+    from paperreader.browser import CHALLENGE_HEADER
+    from paperreader.extract import jats_to_text
+    from paperreader.http import Response
+
+    class FakeBrowser:
+        def __init__(self):
+            self.fetched, self.wait, self.visible = [], None, False
+
+        def reopen(self, visible):
+            self.visible = visible
+
+        def fetch(self, url, human_wait=0.0, may_ask=None):
+            self.fetched.append((url, self.visible))
+            headers = httpx.Headers({"content-type": "text/html", CHALLENGE_HEADER: "1"})
+            return Response(url, 403, headers, b"<html><title>Just a moment...</title></html>")
+
+    monkeypatch.setattr(fetch_mod, "display_available", lambda: True)
+    config.browser_enabled = True
+    f = fetcher(config, client)
+    f._browser = FakeBrowser()
+    run = fetch_mod._Run(Paper(title="Open data", pmcid="PMC9"))
+    if wait_used_up:  # a person was waited for while the text was fetched
+        run.waited = config.browser_paper_wait
+    _, _, specs = jats_to_text(JATS_WITH_FIGURE)
+    assert f._pmc_page_figures(run, specs) == {}
+    assert [visible for _, visible in f._browser.fetched] == ([False] if wait_used_up else [False, True])
 
 
 def test_renaming_moves_the_figures(tmp_path):
