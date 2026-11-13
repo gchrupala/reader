@@ -81,7 +81,8 @@ class Config:
     default_limit: Limit = DEFAULT_LIMIT
 
     max_pdf_bytes: int = 200 * 1024 * 1024
-    timeout: float = 60.0
+    timeout: float = 60.0  # seconds without any data before a request is given up
+    max_download_seconds: float = 600.0  # seconds one response may take in all, however slowly it arrives
 
     path: Path | None = None
 
@@ -138,6 +139,8 @@ def _load_file(cfg: Config, path: Path) -> None:
         cfg.library_dir = Path(data["library_dir"]).expanduser()
     if "state_dir" in data:
         cfg.state_dir = Path(data["state_dir"]).expanduser()
+    if "max_download_seconds" in data:
+        cfg.max_download_seconds = float(data["max_download_seconds"])
 
     inst = data.get("institution", {})
     cfg.proxy = inst.get("proxy") or None
@@ -178,6 +181,9 @@ email = ""
 
 # Where downloaded papers (PDF + extracted text + metadata) are stored.
 library_dir = "~/papers"
+
+# Seconds one download may take in all, however slowly the data arrives.
+# max_download_seconds = 600
 
 [institution]
 # Your library's proxy, if it has one. {url} is replaced by the target URL

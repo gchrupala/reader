@@ -66,6 +66,15 @@ def test_check_waits_from_the_config(tmp_path):
     assert load(tmp_path / "missing.toml").browser_paper_wait == 180.0
 
 
+def test_download_time_limit_from_the_config(tmp_path):
+    from paperreader.config import load
+
+    path = tmp_path / "config.toml"
+    path.write_text("max_download_seconds = 90\n")
+    assert load(path).max_download_seconds == 90.0
+    assert load(tmp_path / "missing.toml").max_download_seconds == 600.0
+
+
 def test_limit_lookup_matches_parent_domains():
     cfg = Config(limits={"sciencedirect.com": Limit(10.0)}, default_limit=Limit(5.0))
     assert cfg.limit_for("www.sciencedirect.com").interval == 10.0
@@ -97,6 +106,14 @@ def test_long_retry_after_gives_up(client, router):
     router.add("https://api.example.org/x", status=429, headers={"retry-after": "3600"})
     with pytest.raises(RateLimited):
         client.get("https://api.example.org/x")
+
+
+def test_a_download_that_takes_too_long_is_given_up(config, client, router):
+    router.add("https://slow.example/file.zip", content=b"some bytes")
+    assert client.get("https://slow.example/file.zip").content == b"some bytes"
+    config.max_download_seconds = -1.0  # any download is now too slow
+    with pytest.raises(httpx.ReadTimeout, match="still downloading"):
+        client.get("https://slow.example/file.zip")
 
 
 def test_cloudflare_1015_is_a_block_not_retried(client, router):
